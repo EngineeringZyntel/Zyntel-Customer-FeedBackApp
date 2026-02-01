@@ -1,0 +1,124 @@
+feedback-app/
+├── app/
+│   ├── __init__.py              # Flask app initialization
+│   ├── models.py                # SQLAlchemy models
+│   ├── auth.py                  # Authentication routes
+│   ├── forms.py                 # Form management routes
+│   ├── responses.py             # Response handling routes
+│   ├── analytics.py             # Analytics routes
+│   ├── qrcode_generator.py      # QR code generation utility
+│   ├── email_service.py         # Email notification service
+│   └── websocket_events.py      # Socket.IO event handlers
+├── static/
+│   ├── css/
+│   │   ├── main.css
+│   │   ├── auth.css
+│   │   ├── dashboard.css
+│   │   └── form-builder.css
+│   ├── js/
+│   │   ├── auth.js
+│   │   ├── form-builder.js
+│   │   ├── form-submission.js
+│   │   ├── analytics.js
+│   │   ├── qrcode-handler.js
+│   │   └── websocket-client.js
+│   └── images/
+│       └── default-logo.png
+├── templates/
+│   ├── base.html
+│   ├── auth/
+│   │   ├── login.html
+│   │   └── register.html
+│   ├── dashboard/
+│   │   ├── index.html
+│   │   ├── form-builder.html
+│   │   └── analytics.html
+│   └── public/
+│       └── form-view.html
+├── migrations/                   # Database migrations
+├── config.py                     # Configuration settings
+├── requirements.txt
+├── wsgi.py                       # WSGI entry point
+└── .env.example
+
+
+
+######## DAILY WORKFLOW ########
+# Check current status
+# Shows current branch and any uncommitted changes
+git status
+git branch
+
+# Switch to developer branch
+# Moves to the developer branch for feature development
+git checkout developer
+
+# Create a new feature branch
+# Creates and switches to a new feature branch with descriptive name
+git checkout -b feat/login page
+
+# Check status again
+# Confirms we're on the correct branch and shows current state
+git status
+
+# Ensure we're in root directory (optional check)
+# Confirms we're in the project root
+# Or on Linux: pwd
+cd
+
+# Add all changes
+# Stages all modified and new files for commit
+git add .
+
+# Commit with detailed message
+# Detailed commit message following conventional commits format
+git commit -m "feat: implement enhanced backup system with auto-scheduling
+
+- Add automatic backup scheduling with configurable intervals
+- Implement backup rotation (keep last 10 backups)
+- Add SQL dump functionality for additional safety
+- Create backup management UI in settings tab
+- Add manual backup triggers from sidebar
+- Include backup status monitoring and logging"
+
+# OR for single line message:
+git commit -m "feat: add auto-backup system with scheduling and rotation"
+
+# Push to remote feature branch
+# Pushes branch to remote and sets upstream tracking
+git push -u origin feat/login page
+
+# Next day - continue working on same feature
+# Switch back to your feature branch
+git checkout feat/login page
+
+# Check what you were working on
+git status
+
+# After making more changes:
+git add .
+git commit -m "feat: enhance backup UI with progress indicators"
+git push origin feat/login page
+
+# When feature is complete, merge to developer branch
+# Update developer branch with latest changes
+git checkout developer
+git pull origin developer
+
+# Merge feature branch with no-fast-forward to preserve history
+git merge feat/inventory-backup-system --no-ff
+
+# Push merged changes to remote developer branch
+git push origin developer
+
+# Delete local feature branch
+git branch -d feat/login page
+
+# Delete remote feature branch
+git push origin --delete feat/login page
+
+# Merge from developer to main (when ready for release)
+git checkout main
+git pull origin main
+git merge developer --no-ff
+git push origin main
