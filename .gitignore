@@ -1,0 +1,40 @@
+﻿# Environment variables
+.env
+*.env.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# PyInstaller outputs
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Backup files
+backups/
+
+# Virtual environments
+venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime folders
+public/
+debug/
+
