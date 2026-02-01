@@ -1,45 +1,21 @@
 feedback-app/
-├── app/
-│   ├── __init__.py              # Flask app initialization
-│   ├── models.py                # SQLAlchemy models
-│   ├── auth.py                  # Authentication routes
-│   ├── forms.py                 # Form management routes
-│   ├── responses.py             # Response handling routes
-│   ├── analytics.py             # Analytics routes
-│   ├── qrcode_generator.py      # QR code generation utility
-│   ├── email_service.py         # Email notification service
-│   └── websocket_events.py      # Socket.IO event handlers
-├── static/
-│   ├── css/
-│   │   ├── main.css
-│   │   ├── auth.css
-│   │   ├── dashboard.css
-│   │   └── form-builder.css
-│   ├── js/
-│   │   ├── auth.js
-│   │   ├── form-builder.js
-│   │   ├── form-submission.js
-│   │   ├── analytics.js
-│   │   ├── qrcode-handler.js
-│   │   └── websocket-client.js
-│   └── images/
-│       └── default-logo.png
-├── templates/
-│   ├── base.html
-│   ├── auth/
-│   │   ├── login.html
-│   │   └── register.html
-│   ├── dashboard/
-│   │   ├── index.html
-│   │   ├── form-builder.html
-│   │   └── analytics.html
-│   └── public/
-│       └── form-view.html
-├── migrations/                   # Database migrations
-├── config.py                     # Configuration settings
-├── requirements.txt
-├── wsgi.py                       # WSGI entry point
-└── .env.example
+├── backend/
+│   ├── app.py                  # Flask application
+│   └── requirements.txt        # Python dependencies
+├── frontend/
+│   ├── index.html             # Single-page application
+│   ├── styles.css             # Modern, distinctive design
+│   └── app.js                 # Client-side logic
+├── render.yaml                # Deployment configuration
+├── .env.example               # Environment template
+├── .gitignore                 # Git ignore rules
+├── start-dev.sh              # Unix dev startup script
+├── start-dev.bat             # Windows dev startup script
+├── README.md                  # Main documentation
+├── DEPLOYMENT.md              # Deployment guide
+├── ARCHITECTURE.md            # System architecture
+├── FEATURES.md               # Feature roadmap
+└── CHECKLIST.md              # Setup checklist
 
 
 
