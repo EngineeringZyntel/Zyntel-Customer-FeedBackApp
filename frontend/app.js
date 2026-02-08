@@ -1,5 +1,5 @@
 // Configuration
-const API_URL = 'https://your-backend-url.onrender.com/api'; // Update this after deployment
+const API_URL = 'http://localhost:5001/api'; // Local development
 
 // State
 let currentUser = null;
