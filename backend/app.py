@@ -210,17 +210,27 @@ def get_user_forms(user_id):
 
 @app.route('/api/forms/<form_code>', methods=['GET'])
 def get_form_by_code(form_code):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT id, title, description, fields, logo_data FROM forms WHERE form_code = %s',
-                (form_code,))
-    form = cur.fetchone()
-    cur.close()
-    conn.close()
-    
-    if form:
-        return jsonify({'form': form}), 200
-    return jsonify({'error': 'Form not found'}), 404
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('SELECT id, title, description, fields, logo_data FROM forms WHERE form_code = %s',
+                    (form_code,))
+        form = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if form:
+            # Ensure fields is properly formatted
+            if isinstance(form['fields'], str):
+                try:
+                    form['fields'] = json.loads(form['fields'])
+                except:
+                    pass
+            return jsonify({'form': form}), 200
+        return jsonify({'error': 'Form not found', 'form_code': form_code}), 404
+    except Exception as e:
+        print(f"Error fetching form {form_code}: {e}")
+        return jsonify({'error': 'Server error', 'message': str(e)}), 500
 
 @app.route('/api/forms/<int:form_id>', methods=['DELETE'])
 def delete_form(form_id):

@@ -53,11 +53,13 @@ function hidePageLoading() {
 // Routing
 function handleRouting() {
     const path = window.location.pathname;
-    const formCode = path.match(/\/form\/([^\/]+)/);
+    const formCodeMatch = path.match(/\/form\/([^\/\?]+)/);
     
-    if (formCode) {
-        loadPublicForm(formCode[1]);
-    } else if (!currentUser) {
+    if (formCodeMatch) {
+        const formCode = formCodeMatch[1];
+        // Ensure we're on the public form page
+        loadPublicForm(formCode);
+    } else if (!currentUser && !path.match(/\/form\//)) {
         showPage('landing-page');
     }
 }
@@ -549,20 +551,30 @@ async function loadPublicForm(formCode) {
     showPageLoading();
     
     try {
-        const response = await fetch(`${API_URL}/forms/${formCode}`);
-        const data = await response.json();
+        const apiUrl = `${API_URL}/forms/${encodeURIComponent(formCode)}`;
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
         
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Form not found' }));
+            hidePageLoading();
             document.getElementById('public-form-page').innerHTML = `
                 <div class="public-form-container">
                     <div class="public-form-box">
                         <h1>Form Not Found</h1>
                         <p>The form you're looking for doesn't exist or has been deleted.</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px;">Form Code: ${formCode}</p>
                     </div>
                 </div>
             `;
             return;
         }
+        
+        const data = await response.json();
         
         const form = data.form;
         
