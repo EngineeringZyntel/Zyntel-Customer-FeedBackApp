@@ -401,12 +401,21 @@ def send_notification_email(to_email, form_title, response_data):
 def index():
     return jsonify({'message': 'Feedback App API'}), 200
 
+# Handle favicon requests
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204  # No Content - prevents 404 error
+
 # Serve frontend static files
 @app.route('/<path:path>')
 def serve_frontend(path):
     # Don't serve API routes
     if path.startswith('api/'):
         return jsonify({'error': 'Not found'}), 404
+    
+    # Handle favicon
+    if path == 'favicon.ico':
+        return '', 204
     
     # Serve index.html for all non-API routes (SPA routing)
     if '.' not in path or path.endswith('.html'):
