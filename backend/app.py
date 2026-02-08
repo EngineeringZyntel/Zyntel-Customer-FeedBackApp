@@ -66,6 +66,53 @@ def init_db():
         )
     ''')
     
+    # Add default admin user
+    default_email = "admin@example.com"
+    default_password = "admin123"
+    default_password_hash = hashlib.sha256(default_password.encode()).hexdigest()
+    
+    try:
+        # Check if default user already exists
+        cur.execute('SELECT id FROM users WHERE email = %s', (default_email,))
+        existing_user = cur.fetchone()
+        
+        if not existing_user:
+            # Insert default user
+            cur.execute('''
+                INSERT INTO users (email, password_hash)
+                VALUES (%s, %s)
+                RETURNING id, email
+            ''', (default_email, default_password_hash))
+            
+            default_user = cur.fetchone()
+            print(f"✅ Default user created: {default_user['email']} / {default_password}")
+            
+            # Optionally create a sample form for the default user
+            sample_form_code = "DEMO123"
+            sample_fields = [
+                {"label": "Your Name", "type": "text"},
+                {"label": "Email Address", "type": "email"},
+                {"label": "Rating (1-5)", "type": "number"},
+                {"label": "Comments", "type": "textarea"}
+            ]
+            
+            cur.execute('''
+                INSERT INTO forms (user_id, title, description, form_code, fields)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (form_code) DO NOTHING
+            ''', (
+                default_user['id'], 
+                "Sample Feedback Form",
+                "Please share your feedback with us",
+                sample_form_code,
+                json.dumps(sample_fields)
+            ))
+            
+            print(f"✅ Sample form created with code: {sample_form_code}")
+            print(f"✅ Sample form URL: http://localhost:8080/form/{sample_form_code}")
+    except Exception as e:
+        print(f"⚠️ Could not create default user: {e}")
+    
     conn.commit()
     cur.close()
     conn.close()
@@ -337,6 +384,14 @@ def send_notification_email(to_email, form_title, response_data):
 @app.route('/')
 def index():
     return jsonify({'message': 'Feedback App API'}), 200
+
+@app.route('/<path:path>')
+def serve_frontend(path):
+    return send_from_directory('../frontend', path)
+
+@app.route('/')
+def serve_index():
+    return send_from_directory('../frontend', 'index.html')
 
 if __name__ == '__main__':
     init_db()
