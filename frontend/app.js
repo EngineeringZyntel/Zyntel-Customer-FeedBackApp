@@ -64,6 +64,11 @@ function handleRouting() {
     }
 }
 
+// Also handle routing on popstate (back/forward buttons)
+window.addEventListener('popstate', () => {
+    handleRouting();
+});
+
 // Page Navigation
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
