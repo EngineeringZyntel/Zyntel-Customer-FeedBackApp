@@ -1,5 +1,8 @@
 // Configuration
-const API_URL = 'http://localhost:5001/api'; // Local development
+// Auto-detect environment: use production URL if deployed, otherwise localhost
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5001/api'  // Local development
+    : 'https://feedback-app-backend.onrender.com/api';  // Production
 
 // State
 let currentUser = null;
