@@ -15,6 +15,41 @@ document.addEventListener('DOMContentLoaded', () => {
     handleRouting();
 });
 
+// Loading Animation Helper
+function showLoading(element, text = 'Loading...') {
+    if (typeof element === 'string') {
+        element = document.getElementById(element);
+    }
+    if (!element) return;
+    
+    const originalContent = element.innerHTML;
+    element.dataset.originalContent = originalContent;
+    element.innerHTML = `<span class="loading"></span> ${text}`;
+    element.disabled = true;
+    return originalContent;
+}
+
+function hideLoading(element, originalContent = null) {
+    if (typeof element === 'string') {
+        element = document.getElementById(element);
+    }
+    if (!element) return;
+    
+    element.innerHTML = originalContent || element.dataset.originalContent || '';
+    element.disabled = false;
+    delete element.dataset.originalContent;
+}
+
+function showPageLoading() {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.style.display = 'flex';
+}
+
+function hidePageLoading() {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.style.display = 'none';
+}
+
 // Routing
 function handleRouting() {
     const path = window.location.pathname;
@@ -22,6 +57,8 @@ function handleRouting() {
     
     if (formCode) {
         loadPublicForm(formCode[1]);
+    } else if (!currentUser) {
+        showPage('landing-page');
     }
 }
 
@@ -30,7 +67,10 @@ function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
     });
-    document.getElementById(pageId).classList.add('active');
+    const page = document.getElementById(pageId);
+    if (page) {
+        page.classList.add('active');
+    }
 }
 
 function showLogin() {
@@ -57,9 +97,13 @@ function checkAuth() {
     const user = localStorage.getItem('user');
     if (user) {
         currentUser = JSON.parse(user);
-        showDashboard();
+        if (!window.location.pathname.match(/\/form\//)) {
+            showDashboard();
+        }
     } else {
-        showPage('landing-page');
+        if (!window.location.pathname.match(/\/form\//)) {
+            showPage('landing-page');
+        }
     }
 }
 
@@ -68,6 +112,9 @@ async function handleRegister(e) {
     
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    const originalContent = showLoading(submitBtn, 'Creating...');
     
     try {
         const response = await fetch(`${API_URL}/auth/register`, {
@@ -83,9 +130,11 @@ async function handleRegister(e) {
             localStorage.setItem('user', JSON.stringify(data.user));
             showDashboard();
         } else {
+            hideLoading(submitBtn, originalContent);
             alert(data.error || 'Registration failed');
         }
     } catch (error) {
+        hideLoading(submitBtn, originalContent);
         alert('Network error. Please try again.');
     }
 }
@@ -95,6 +144,9 @@ async function handleLogin(e) {
     
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    const originalContent = showLoading(submitBtn, 'Logging in...');
     
     try {
         const response = await fetch(`${API_URL}/auth/login`, {
@@ -110,9 +162,11 @@ async function handleLogin(e) {
             localStorage.setItem('user', JSON.stringify(data.user));
             showDashboard();
         } else {
+            hideLoading(submitBtn, originalContent);
             alert(data.error || 'Login failed');
         }
     } catch (error) {
+        hideLoading(submitBtn, originalContent);
         alert('Network error. Please try again.');
     }
 }
@@ -126,6 +180,8 @@ function logout() {
 // Forms
 async function loadUserForms() {
     if (!currentUser) return;
+    
+    showPageLoading();
     
     try {
         const response = await fetch(`${API_URL}/forms/user/${currentUser.id}`);
@@ -148,13 +204,15 @@ async function loadUserForms() {
                     </div>
                 </div>
                 <div class="form-card-actions">
-                    <button class="btn-ghost btn-sm" onclick="copyFormLink('${form.form_code}')">Copy Link</button>
+                    <button class="btn-ghost btn-sm" onclick="copyFormLink('${form.form_code}', event)">Copy Link</button>
                     <button class="btn-ghost btn-sm" onclick="deleteForm(${form.id}, event)">Delete</button>
                 </div>
             </div>
         `).join('');
     } catch (error) {
         alert('Error loading forms');
+    } finally {
+        hidePageLoading();
     }
 }
 
@@ -163,20 +221,82 @@ function addField() {
     const fieldId = Date.now();
     
     const fieldHtml = `
-        <div class="field-item" id="field-${fieldId}">
-            <input type="text" placeholder="Field Label" class="field-label" required>
-            <select class="field-type">
-                <option value="text">Text</option>
-                <option value="email">Email</option>
-                <option value="number">Number</option>
-                <option value="textarea">Long Text</option>
-                <option value="select">Dropdown</option>
-            </select>
-            <button type="button" class="btn-remove" onclick="removeField(${fieldId})">×</button>
+        <div class="field-item" id="field-${fieldId}" data-field-id="${fieldId}">
+            <div class="field-header">
+                <input type="text" placeholder="Field Label" class="field-label" required>
+                <select class="field-type" onchange="handleFieldTypeChange(${fieldId}, this.value)">
+                    <option value="text">Text</option>
+                    <option value="email">Email</option>
+                    <option value="number">Number</option>
+                    <option value="tel">Phone</option>
+                    <option value="date">Date</option>
+                    <option value="textarea">Long Text</option>
+                    <option value="select">Dropdown</option>
+                    <option value="multiple">Multiple Choice</option>
+                    <option value="checkbox">Checkbox</option>
+                    <option value="rating">Rating</option>
+                </select>
+                <button type="button" class="btn-remove" onclick="removeField(${fieldId})">×</button>
+            </div>
+            <div class="field-options" id="field-options-${fieldId}"></div>
         </div>
     `;
     
     container.insertAdjacentHTML('beforeend', fieldHtml);
+}
+
+function handleFieldTypeChange(fieldId, fieldType) {
+    const optionsContainer = document.getElementById(`field-options-${fieldId}`);
+    if (!optionsContainer) return;
+    
+    // Clear existing options
+    optionsContainer.innerHTML = '';
+    
+    // Show options editor for dropdown, multiple choice, and checkbox
+    if (fieldType === 'select' || fieldType === 'multiple' || fieldType === 'checkbox') {
+        const optionsHtml = `
+            <div class="field-options-editor">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Options:</label>
+                <div class="options-list" id="options-list-${fieldId}">
+                    <div class="option-item">
+                        <input type="text" class="option-input" placeholder="Option 1" value="Option 1">
+                        <button type="button" class="btn-remove-small" onclick="removeOption(${fieldId}, this)">×</button>
+                    </div>
+                    <div class="option-item">
+                        <input type="text" class="option-input" placeholder="Option 2" value="Option 2">
+                        <button type="button" class="btn-remove-small" onclick="removeOption(${fieldId}, this)">×</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-ghost btn-sm" onclick="addOption(${fieldId})" style="margin-top: 8px;">+ Add Option</button>
+            </div>
+        `;
+        optionsContainer.innerHTML = optionsHtml;
+    } else if (fieldType === 'rating') {
+        const ratingHtml = `
+            <div class="field-options-editor">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Max Rating:</label>
+                <input type="number" class="rating-max" value="5" min="2" max="10" id="rating-max-${fieldId}" style="width: 80px; padding: 6px; border: 1px solid var(--border); border-radius: 6px;">
+            </div>
+        `;
+        optionsContainer.innerHTML = ratingHtml;
+    }
+}
+
+function addOption(fieldId) {
+    const optionsList = document.getElementById(`options-list-${fieldId}`);
+    if (!optionsList) return;
+    
+    const optionHtml = `
+        <div class="option-item">
+            <input type="text" class="option-input" placeholder="New option">
+            <button type="button" class="btn-remove-small" onclick="removeOption(${fieldId}, this)">×</button>
+        </div>
+    `;
+    optionsList.insertAdjacentHTML('beforeend', optionHtml);
+}
+
+function removeOption(fieldId, button) {
+    button.closest('.option-item').remove();
 }
 
 function removeField(fieldId) {
@@ -199,15 +319,42 @@ async function handleCreateForm(e) {
     
     const title = document.getElementById('form-title').value;
     const description = document.getElementById('form-description').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    const originalContent = showLoading(submitBtn, 'Creating...');
     
     const fieldElements = document.querySelectorAll('.field-item');
-    const fields = Array.from(fieldElements).map(el => ({
-        label: el.querySelector('.field-label').value,
-        type: el.querySelector('.field-type').value
-    }));
+    const fields = Array.from(fieldElements).map(el => {
+        const fieldData = {
+            label: el.querySelector('.field-label').value,
+            type: el.querySelector('.field-type').value
+        };
+        
+        // Add options for dropdown, multiple choice, checkbox
+        if (fieldData.type === 'select' || fieldData.type === 'multiple' || fieldData.type === 'checkbox') {
+            const optionInputs = el.querySelectorAll('.option-input');
+            fieldData.options = Array.from(optionInputs).map(input => input.value).filter(v => v.trim());
+        }
+        
+        // Add max rating for rating field
+        if (fieldData.type === 'rating') {
+            const maxRating = el.querySelector('.rating-max');
+            fieldData.maxRating = maxRating ? parseInt(maxRating.value) || 5 : 5;
+        }
+        
+        return fieldData;
+    });
     
     if (fields.length === 0) {
+        hideLoading(submitBtn, originalContent);
         alert('Please add at least one field');
+        return;
+    }
+    
+    // Validate all fields have labels
+    if (fields.some(f => !f.label.trim())) {
+        hideLoading(submitBtn, originalContent);
+        alert('Please fill in all field labels');
         return;
     }
     
@@ -228,11 +375,14 @@ async function handleCreateForm(e) {
         
         if (response.ok) {
             alert(`Form created! Code: ${data.form.form_code}`);
+            logoData = null;
             showDashboard();
         } else {
+            hideLoading(submitBtn, originalContent);
             alert('Error creating form');
         }
     } catch (error) {
+        hideLoading(submitBtn, originalContent);
         alert('Network error. Please try again.');
     }
 }
@@ -242,15 +392,19 @@ async function deleteForm(formId, event) {
     
     if (!confirm('Are you sure you want to delete this form?')) return;
     
+    showPageLoading();
+    
     try {
         await fetch(`${API_URL}/forms/${formId}`, { method: 'DELETE' });
         loadUserForms();
     } catch (error) {
+        hidePageLoading();
         alert('Error deleting form');
     }
 }
 
-function copyFormLink(formCode) {
+function copyFormLink(formCode, event) {
+    if (event) event.stopPropagation();
     const link = `${window.location.origin}/form/${formCode}`;
     navigator.clipboard.writeText(link);
     alert('Form link copied to clipboard!');
@@ -262,6 +416,8 @@ async function viewFormStats(formId, title, formCode) {
     showPage('stats-page');
     
     document.getElementById('stats-form-title').textContent = title;
+    
+    showPageLoading();
     
     try {
         // Load stats
@@ -282,12 +438,19 @@ async function viewFormStats(formId, title, formCode) {
         if (responsesData.responses.length === 0) {
             responsesList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No responses yet</p>';
         } else {
-            responsesList.innerHTML = responsesData.responses.map(response => `
-                <div class="response-item">
-                    <div class="response-date">${new Date(response.submitted_at).toLocaleString()}</div>
-                    <div class="response-data">${JSON.stringify(JSON.parse(response.response_data), null, 2)}</div>
-                </div>
-            `).join('');
+            responsesList.innerHTML = responsesData.responses.map((response, idx) => {
+                const data = JSON.parse(response.response_data);
+                const dataHtml = Object.entries(data).map(([key, value]) => 
+                    `<div style="margin-bottom: 8px;"><strong>${key}:</strong> ${value}</div>`
+                ).join('');
+                
+                return `
+                    <div class="response-item">
+                        <div class="response-date">${new Date(response.submitted_at).toLocaleString()}</div>
+                        <div class="response-data">${dataHtml}</div>
+                    </div>
+                `;
+            }).join('');
         }
         
         // Store form code for QR generation
@@ -295,6 +458,8 @@ async function viewFormStats(formId, title, formCode) {
         
     } catch (error) {
         alert('Error loading stats');
+    } finally {
+        hidePageLoading();
     }
 }
 
@@ -348,13 +513,17 @@ function drawChart(dailyStats) {
 
 async function generateQRCode() {
     const formCode = document.getElementById('responses-list').dataset.formCode;
+    const btn = event.target;
+    const originalContent = showLoading(btn, 'Generating...');
     
     try {
+        const formUrl = `${window.location.origin}/form/${formCode}`;
         const response = await fetch(`${API_URL}/qrcode`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 form_code: formCode,
+                form_url: formUrl,
                 logo_data: logoData
             })
         });
@@ -362,26 +531,36 @@ async function generateQRCode() {
         const data = await response.json();
         
         document.getElementById('qr-display').innerHTML = `
-            <img src="${data.qrcode}" alt="QR Code">
+            <img src="${data.qrcode}" alt="QR Code" style="max-width: 300px; margin: 16px 0;">
             <p style="margin-top: 16px;">
                 <a href="${data.qrcode}" download="qrcode.png" class="btn-primary">Download QR Code</a>
             </p>
         `;
     } catch (error) {
         alert('Error generating QR code');
+    } finally {
+        hideLoading(btn, originalContent);
     }
 }
 
 // Public Form
 async function loadPublicForm(formCode) {
     showPage('public-form-page');
+    showPageLoading();
     
     try {
         const response = await fetch(`${API_URL}/forms/${formCode}`);
         const data = await response.json();
         
         if (!response.ok) {
-            alert('Form not found');
+            document.getElementById('public-form-page').innerHTML = `
+                <div class="public-form-container">
+                    <div class="public-form-box">
+                        <h1>Form Not Found</h1>
+                        <p>The form you're looking for doesn't exist or has been deleted.</p>
+                    </div>
+                </div>
+            `;
             return;
         }
         
@@ -392,29 +571,60 @@ async function loadPublicForm(formCode) {
         
         if (form.logo_data) {
             document.getElementById('form-logo-container').innerHTML = 
-                `<img src="${form.logo_data}" alt="Logo">`;
+                `<img src="${form.logo_data}" alt="Logo" style="max-width: 150px; margin-bottom: 24px;">`;
         }
         
-        const fields = JSON.parse(form.fields);
+        const fields = typeof form.fields === 'string' ? JSON.parse(form.fields) : form.fields;
         const fieldsHtml = fields.map((field, index) => {
             let inputHtml = '';
             
             switch (field.type) {
                 case 'textarea':
-                    inputHtml = `<textarea id="field-${index}" rows="4" required></textarea>`;
+                    inputHtml = `<textarea id="field-${index}" name="field-${index}" rows="4" required></textarea>`;
                     break;
                 case 'select':
+                    const selectOptions = (field.options || []).map(opt => 
+                        `<option value="${opt}">${opt}</option>`
+                    ).join('');
                     inputHtml = `
-                        <select id="field-${index}" required>
+                        <select id="field-${index}" name="field-${index}" required>
                             <option value="">Select...</option>
-                            <option value="Option 1">Option 1</option>
-                            <option value="Option 2">Option 2</option>
-                            <option value="Option 3">Option 3</option>
+                            ${selectOptions}
                         </select>
                     `;
                     break;
+                case 'multiple':
+                    const multipleOptions = (field.options || []).map((opt, optIdx) => 
+                        `<label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="radio" name="field-${index}" value="${opt}" required style="margin-right: 8px;">
+                            ${opt}
+                        </label>`
+                    ).join('');
+                    inputHtml = `<div class="multiple-choice">${multipleOptions}</div>`;
+                    break;
+                case 'checkbox':
+                    const checkboxOptions = (field.options || []).map((opt, optIdx) => 
+                        `<label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" name="field-${index}[]" value="${opt}" style="margin-right: 8px;">
+                            ${opt}
+                        </label>`
+                    ).join('');
+                    inputHtml = `<div class="checkbox-group">${checkboxOptions}</div>`;
+                    break;
+                case 'rating':
+                    const maxRating = field.maxRating || 5;
+                    const stars = Array.from({ length: maxRating }, (_, i) => i + 1)
+                        .map(star => 
+                            `<input type="radio" name="field-${index}" value="${star}" id="star-${index}-${star}" required style="display: none;">
+                             <label for="star-${index}-${star}" class="star-label" data-rating="${star}">★</label>`
+                        ).join('');
+                    inputHtml = `<div class="rating-group" data-field="${index}">${stars}</div>`;
+                    break;
+                case 'date':
+                    inputHtml = `<input type="date" id="field-${index}" name="field-${index}" required>`;
+                    break;
                 default:
-                    inputHtml = `<input type="${field.type}" id="field-${index}" required>`;
+                    inputHtml = `<input type="${field.type}" id="field-${index}" name="field-${index}" required>`;
             }
             
             return `
@@ -428,8 +638,34 @@ async function loadPublicForm(formCode) {
         document.getElementById('public-form-fields').innerHTML = fieldsHtml;
         document.getElementById('public-form').dataset.formCode = formCode;
         
+        // Initialize rating stars
+        document.querySelectorAll('.rating-group').forEach(group => {
+            const labels = group.querySelectorAll('.star-label');
+            labels.forEach((label, idx) => {
+                label.addEventListener('click', function() {
+                    const rating = parseInt(this.dataset.rating);
+                    labels.forEach((l, i) => {
+                        if (i < rating) {
+                            l.style.color = '#FFD700';
+                        } else {
+                            l.style.color = '#ccc';
+                        }
+                    });
+                });
+            });
+        });
+        
     } catch (error) {
-        alert('Error loading form');
+        document.getElementById('public-form-page').innerHTML = `
+            <div class="public-form-container">
+                <div class="public-form-box">
+                    <h1>Error Loading Form</h1>
+                    <p>There was an error loading this form. Please try again later.</p>
+                </div>
+            </div>
+        `;
+    } finally {
+        hidePageLoading();
     }
 }
 
@@ -437,14 +673,31 @@ async function handleSubmitResponse(e) {
     e.preventDefault();
     
     const formCode = e.target.dataset.formCode;
-    const formData = new FormData(e.target);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalContent = showLoading(submitBtn, 'Submitting...');
+    
     const responseData = {};
     
     const fields = document.querySelectorAll('#public-form-fields .form-group');
     fields.forEach((field, index) => {
         const label = field.querySelector('label').textContent;
-        const input = field.querySelector(`#field-${index}`);
-        responseData[label] = input.value;
+        const input = field.querySelector(`#field-${index}, [name="field-${index}"], [name="field-${index}[]"]`);
+        
+        if (!input) return;
+        
+        // Handle different input types
+        if (input.type === 'checkbox' || input.name.includes('[]')) {
+            // Multiple checkboxes
+            const checked = field.querySelectorAll(`[name="field-${index}[]"]:checked`);
+            responseData[label] = Array.from(checked).map(cb => cb.value).join(', ');
+        } else if (input.type === 'radio') {
+            // Radio buttons (multiple choice)
+            const selected = field.querySelector(`[name="field-${index}"]:checked`);
+            responseData[label] = selected ? selected.value : '';
+        } else {
+            // Regular inputs
+            responseData[label] = input.value;
+        }
     });
     
     try {
@@ -461,9 +714,12 @@ async function handleSubmitResponse(e) {
             document.getElementById('public-form').style.display = 'none';
             document.getElementById('success-message').style.display = 'block';
         } else {
-            alert('Error submitting response');
+            const errorData = await response.json();
+            hideLoading(submitBtn, originalContent);
+            alert(errorData.error || 'Error submitting response');
         }
     } catch (error) {
+        hideLoading(submitBtn, originalContent);
         alert('Network error. Please try again.');
     }
 }

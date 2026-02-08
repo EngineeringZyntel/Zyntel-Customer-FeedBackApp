@@ -3,6 +3,7 @@ from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+import json
 from datetime import datetime
 import secrets
 import smtplib
@@ -324,8 +325,13 @@ def generate_qrcode():
     data = request.json
     form_code = data.get('form_code')
     logo_data = data.get('logo_data')
+    form_url = data.get('form_url')
     
-    form_url = f"{request.host_url}form/{form_code}"
+    # Use provided URL or construct from request
+    if not form_url:
+        # Try to get frontend URL from environment or construct
+        frontend_url = os.getenv('FRONTEND_URL', request.host_url.rstrip('/'))
+        form_url = f"{frontend_url}/form/{form_code}"
     
     # Generate QR code
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -385,13 +391,19 @@ def send_notification_email(to_email, form_title, response_data):
 def index():
     return jsonify({'message': 'Feedback App API'}), 200
 
+# Serve frontend static files
 @app.route('/<path:path>')
 def serve_frontend(path):
+    # Don't serve API routes
+    if path.startswith('api/'):
+        return jsonify({'error': 'Not found'}), 404
+    
+    # Serve index.html for all non-API routes (SPA routing)
+    if '.' not in path or path.endswith('.html'):
+        return send_from_directory('../frontend', 'index.html')
+    
+    # Serve other static files
     return send_from_directory('../frontend', path)
-
-@app.route('/')
-def serve_index():
-    return send_from_directory('../frontend', 'index.html')
 
 if __name__ == '__main__':
     init_db()

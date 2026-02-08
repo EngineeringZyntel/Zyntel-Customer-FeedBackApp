@@ -7,6 +7,14 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Page Loader -->
+    <div id="page-loader" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="text-align: center;">
+            <div class="loading" style="width: 40px; height: 40px; border-width: 4px; margin: 0 auto 16px;"></div>
+            <p style="color: var(--text-secondary);">Loading...</p>
+        </div>
+    </div>
+
     <div id="app">
         <!-- Landing Page -->
         <div id="landing-page" class="page active">

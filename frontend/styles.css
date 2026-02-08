@@ -570,12 +570,147 @@ body {
     display: inline-block;
     width: 20px;
     height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(0, 102, 255, 0.3);
     border-radius: 50%;
-    border-top-color: white;
+    border-top-color: var(--primary);
     animation: spin 1s linear infinite;
+    vertical-align: middle;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* Field Options Editor */
+.field-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.field-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.field-label {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+}
+
+.field-type {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.field-options {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.field-options-editor {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+}
+
+.options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.option-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.option-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.btn-remove-small {
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove-small:hover {
+    background: #cc2e24;
+}
+
+.rating-group {
+    display: flex;
+    gap: 4px;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.star-label {
+    font-size: 32px;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-label:hover,
+.star-label:hover ~ .star-label {
+    color: #FFD700;
+}
+
+.rating-group input[type="radio"]:checked ~ .star-label,
+.rating-group input[type="radio"]:checked ~ .star-label ~ .star-label {
+    color: #FFD700;
+}
+
+.multiple-choice,
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.multiple-choice label,
+.checkbox-group label {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.multiple-choice label:hover,
+.checkbox-group label:hover {
+    background: var(--bg-secondary);
+}
+
+/* Button disabled state */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
