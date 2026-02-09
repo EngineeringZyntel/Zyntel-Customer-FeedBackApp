@@ -55,7 +55,7 @@ export default function AdminPanelPage() {
   const loadData = async (userId: number) => {
     try {
       setIsLoading(true)
-      const formsResponse = await formsApi.getByUser(userId)
+      const formsResponse = await formsApi.getByUser(userId) as { forms: any[] }
       setForms(formsResponse.forms || [])
       
       // Load analytics for all forms
