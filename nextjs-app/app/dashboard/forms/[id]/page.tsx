@@ -1,0 +1,240 @@
+/**
+ * Form Details Page
+ * 
+ * Shows form details, responses, and analytics for a specific form
+ */
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { formsApi, responsesApi, analyticsApi, qrCodeApi } from '@/lib/api'
+import { formatDate } from '@/lib/utils'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+export default function FormDetailsPage() {
+  const params = useParams()
+  const router = useRouter()
+  const formId = parseInt(params.id as string)
+  
+  const [form, setForm] = useState<any>(null)
+  const [responses, setResponses] = useState<any[]>([])
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [qrCode, setQrCode] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'responses' | 'analytics'>('responses')
+
+  useEffect(() => {
+    loadData()
+  }, [formId])
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true)
+      
+      // Load form (we'll need to get it from the list or create a new endpoint)
+      // For now, we'll get all forms and find the one we need
+      const formsResponse = await formsApi.getByUser(1) // Will be fixed with auth
+      const foundForm = formsResponse.forms.find((f: any) => f.id === formId)
+      
+      if (!foundForm) {
+        router.push('/dashboard')
+        return
+      }
+      
+      setForm(foundForm)
+      
+      // Load responses
+      const responsesData = await responsesApi.getByForm(formId)
+      setResponses(responsesData.responses || [])
+      
+      // Load analytics
+      const analyticsData = await analyticsApi.getFormAnalytics(formId)
+      setAnalytics(analyticsData)
+      
+      // Generate QR code
+      const qrData = await qrCodeApi.generate(
+        foundForm.formCode,
+        `${window.location.origin}/form/${foundForm.formCode}`
+      )
+      setQrCode(qrData.qrcode)
+    } catch (error: any) {
+      console.error('Error loading form data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const copyLink = () => {
+    if (form) {
+      const link = `${window.location.origin}/form/${form.formCode}`
+      navigator.clipboard.writeText(link)
+      alert('Form link copied to clipboard!')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!form) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-bg-secondary">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm">← Back to Dashboard</Button>
+          </Link>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <h1 className="text-3xl font-bold mb-2">{form.title}</h1>
+              {form.description && (
+                <p className="text-text-secondary mb-4">{form.description}</p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={copyLink}>
+                  Copy Link
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to delete this form?')) {
+                      await formsApi.delete(form.id)
+                      router.push('/dashboard')
+                    }
+                  }}
+                >
+                  Delete Form
+                </Button>
+              </div>
+            </Card>
+          </div>
+          
+          <Card>
+            <h3 className="font-semibold mb-4">QR Code</h3>
+            {qrCode && (
+              <div className="text-center">
+                <img src={qrCode} alt="QR Code" className="mx-auto mb-4" />
+                <p className="text-xs text-text-secondary font-mono break-all">
+                  {form.formCode}
+                </p>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-6 border-b border-border">
+          <button
+            onClick={() => setActiveTab('responses')}
+            className={`pb-2 px-4 font-medium ${
+              activeTab === 'responses'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary'
+            }`}
+          >
+            Responses ({responses.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`pb-2 px-4 font-medium ${
+              activeTab === 'analytics'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary'
+            }`}
+          >
+            Analytics
+          </button>
+        </div>
+
+        {/* Responses Tab */}
+        {activeTab === 'responses' && (
+          <div className="space-y-4">
+            {responses.length === 0 ? (
+              <Card>
+                <div className="text-center py-12 text-text-secondary">
+                  No responses yet. Share your form to start collecting feedback!
+                </div>
+              </Card>
+            ) : (
+              responses.map((response, idx) => (
+                <Card key={response.id}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-sm text-text-secondary">
+                      Response #{responses.length - idx} • {formatDate(response.submittedAt)}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {Object.entries(response.responseData as Record<string, any>).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-medium">{key}:</span>{' '}
+                        <span className="text-text-secondary">
+                          {Array.isArray(value) ? value.join(', ') : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && analytics && (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card>
+                <div className="text-sm text-text-secondary mb-1">Total Responses</div>
+                <div className="text-3xl font-bold">{analytics.total}</div>
+              </Card>
+              <Card>
+                <div className="text-sm text-text-secondary mb-1">Last 7 Days</div>
+                <div className="text-3xl font-bold">{analytics.trends.last7Days}</div>
+              </Card>
+              <Card>
+                <div className="text-sm text-text-secondary mb-1">Trend</div>
+                <div className={`text-3xl font-bold ${
+                  analytics.trends.trend >= 0 ? 'text-success' : 'text-danger'
+                }`}>
+                  {analytics.trends.trend >= 0 ? '+' : ''}{analytics.trends.trend.toFixed(1)}%
+                </div>
+              </Card>
+            </div>
+
+            {analytics.dailyStats && analytics.dailyStats.length > 0 && (
+              <Card>
+                <h3 className="text-lg font-semibold mb-4">Response Trends</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics.dailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0066FF" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+

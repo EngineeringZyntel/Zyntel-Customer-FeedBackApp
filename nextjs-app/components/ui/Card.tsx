@@ -1,0 +1,30 @@
+/**
+ * Card Component
+ * 
+ * Reusable card container for content sections
+ */
+
+import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
+
+interface CardProps {
+  children: ReactNode
+  className?: string
+  hover?: boolean
+}
+
+export function Card({ children, className, hover = false }: CardProps) {
+  return (
+    <div
+      className={cn(
+        'bg-bg-primary rounded-xl border border-border p-6',
+        'shadow-sm',
+        hover && 'transition-shadow hover:shadow-md cursor-pointer',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+

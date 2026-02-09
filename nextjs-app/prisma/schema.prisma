@@ -1,0 +1,50 @@
+// Prisma Schema for FormFlow
+// This defines the database structure using Prisma ORM
+// Compatible with Neon PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  forms         Form[]
+  
+  @@map("users")
+}
+
+model Form {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  title       String     @db.VarChar(255)
+  description String?    @db.Text
+  formCode    String     @unique @map("form_code") @db.VarChar(20)
+  fields      Json       // JSONB in PostgreSQL
+  logoData    String?    @map("logo_data") @db.Text
+  createdAt   DateTime   @default(now()) @map("created_at")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses   Response[]
+  
+  @@map("forms")
+}
+
+model Response {
+  id          Int      @id @default(autoincrement())
+  formId      Int      @map("form_id")
+  responseData Json    @map("response_data") // JSONB in PostgreSQL
+  submittedAt DateTime @default(now()) @map("submitted_at")
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  @@map("responses")
+  @@index([formId])
+  @@index([submittedAt])
+}
+
