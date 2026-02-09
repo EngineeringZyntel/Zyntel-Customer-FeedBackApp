@@ -98,7 +98,7 @@ export const formsApi = {
   },
   
   delete: async (formId: number) => {
-    return apiRequest(`/forms/${formId}`, {
+    return apiRequest(`/forms/delete/${formId}`, {
       method: 'DELETE',
     })
   },
