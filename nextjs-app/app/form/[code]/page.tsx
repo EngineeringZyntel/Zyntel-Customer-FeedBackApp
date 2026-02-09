@@ -41,7 +41,7 @@ export default function PublicFormPage() {
   const loadForm = async () => {
     try {
       setIsLoading(true)
-      const data = await formsApi.getByCode(formCode)
+      const data = await formsApi.getByCode(formCode) as { form: any }
       setForm(data.form)
     } catch (err: any) {
       setError(err.message || 'Form not found')
