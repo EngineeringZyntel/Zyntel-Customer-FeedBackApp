@@ -68,7 +68,9 @@ export default function DashboardPage() {
     
     try {
       await formsApi.delete(formId)
-      loadForms()
+      if (user) {
+        loadForms(user.userId)
+      }
     } catch (error: any) {
       alert('Error deleting form: ' + error.message)
     }
