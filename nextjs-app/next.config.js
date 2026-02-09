@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -7,6 +9,14 @@ const nextConfig = {
   },
   // Enable static exports if needed
   output: 'standalone',
+  // Webpack alias configuration
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, '.'),
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig
