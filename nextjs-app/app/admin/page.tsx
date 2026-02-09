@@ -61,7 +61,7 @@ export default function AdminPanelPage() {
       // Load analytics for all forms
       const analyticsPromises = formsResponse.forms.map(async (form: any) => {
         try {
-          const analyticsData = await analyticsApi.getFormAnalytics(form.id)
+          const analyticsData = await analyticsApi.getFormAnalytics(form.id) as any
           return {
             id: form.id,
             title: form.title,
