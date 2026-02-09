@@ -5,7 +5,7 @@ services:
     env: node
     region: oregon
     rootDir: nextjs-app
-    buildCommand: npm install && npm run db:generate && npm run build
+    buildCommand: ls -la && ls -la components lib && npm install && npm run db:generate && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
