@@ -38,7 +38,7 @@ export default function FormDetailsPage() {
       
       // Load form (we'll need to get it from the list or create a new endpoint)
       // For now, we'll get all forms and find the one we need
-      const formsResponse = await formsApi.getByUser(1) // Will be fixed with auth
+      const formsResponse = await formsApi.getByUser(1) as { forms: any[] } // Will be fixed with auth
       const foundForm = formsResponse.forms.find((f: any) => f.id === formId)
       
       if (!foundForm) {
@@ -49,11 +49,11 @@ export default function FormDetailsPage() {
       setForm(foundForm)
       
       // Load responses
-      const responsesData = await responsesApi.getByForm(formId)
+      const responsesData = await responsesApi.getByForm(formId) as { responses: any[] }
       setResponses(responsesData.responses || [])
       
       // Load analytics
-      const analyticsData = await analyticsApi.getFormAnalytics(formId)
+      const analyticsData = await analyticsApi.getFormAnalytics(formId) as any
       setAnalytics(analyticsData)
       
       // Generate QR code

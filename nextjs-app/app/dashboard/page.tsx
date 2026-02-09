@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const loadForms = async (userId: number) => {
     try {
       setIsLoading(true)
-      const response = await formsApi.getByUser(userId)
+      const response = await formsApi.getByUser(userId) as { forms: Form[] }
       setForms(response.forms || [])
     } catch (error: any) {
       if (error.message.includes('Unauthorized')) {
