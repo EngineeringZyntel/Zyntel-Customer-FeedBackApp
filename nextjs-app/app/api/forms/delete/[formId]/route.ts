@@ -1,7 +1,7 @@
 /**
  * Delete Form API Route
  * 
- * DELETE /api/forms/[formId]
+ * DELETE /api/forms/delete/[formId]
  * Deletes a form (requires authentication)
  */
 
