@@ -60,7 +60,7 @@ export default function FormDetailsPage() {
       const qrData = await qrCodeApi.generate(
         foundForm.formCode,
         `${window.location.origin}/form/${foundForm.formCode}`
-      )
+      ) as { qrcode: string }
       setQrCode(qrData.qrcode)
     } catch (error: any) {
       console.error('Error loading form data:', error)
