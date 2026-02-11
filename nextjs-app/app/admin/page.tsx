@@ -46,7 +46,7 @@ export default function AdminPanelPage() {
   useEffect(() => {
     const currentUser = getCurrentUser()
     if (!currentUser) {
-      router.push('/login')
+      router.push('/')
       return
     }
     loadData(currentUser.userId)
@@ -85,7 +85,7 @@ export default function AdminPanelPage() {
       setAnalytics(analyticsData)
     } catch (error: any) {
       if (error.message.includes('Unauthorized')) {
-        router.push('/login')
+        router.push('/')
       }
     } finally {
       setIsLoading(false)
@@ -124,7 +124,7 @@ export default function AdminPanelPage() {
               </Link>
               <Button variant="ghost" onClick={() => {
                 authApi.logout()
-                router.push('/login')
+                router.push('/')
               }}>
                 Logout
               </Button>

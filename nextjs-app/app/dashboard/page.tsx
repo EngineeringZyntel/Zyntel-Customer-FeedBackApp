@@ -36,7 +36,7 @@ export default function DashboardPage() {
     // Check if user is logged in
     const currentUser = getCurrentUser()
     if (!currentUser) {
-      router.push('/login')
+      router.push('/')
       return
     }
     
@@ -51,7 +51,7 @@ export default function DashboardPage() {
       setForms(response.forms || [])
     } catch (error: any) {
       if (error.message.includes('Unauthorized')) {
-        router.push('/login')
+        router.push('/')
       }
     } finally {
       setIsLoading(false)
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     authApi.logout()
-    router.push('/login')
+    router.push('/')
   }
 
   const handleDelete = async (formId: number) => {
