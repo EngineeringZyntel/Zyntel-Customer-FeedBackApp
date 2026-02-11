@@ -36,8 +36,16 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const { title, description, fields, logoData } = validationResult.data
-    
+    const raw = validationResult.data
+    const title = raw.title
+    const description = raw.description ?? null
+    const fields = raw.fields
+    const logoData = raw.logoData ?? null
+    const thankYouMessage = raw.thankYouMessage?.trim() || null
+    const thankYouRedirectUrl = raw.thankYouRedirectUrl?.trim() || null
+    const closeDate = raw.closeDate ? new Date(raw.closeDate) : null
+    const responseLimit = raw.responseLimit ?? null
+
     // Generate unique form code
     let formCode = generateFormCode()
     let codeExists = true
@@ -59,10 +67,14 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.userId,
         title,
-        description: description || null,
+        description,
         formCode,
         fields: fields as any,
-        logoData: logoData || null,
+        logoData,
+        thankYouMessage,
+        thankYouRedirectUrl,
+        closeDate,
+        responseLimit,
       },
       include: {
         _count: {
@@ -131,6 +143,10 @@ export async function GET(request: NextRequest) {
       formCode: form.formCode,
       fields: form.fields,
       logoData: form.logoData,
+      thankYouMessage: form.thankYouMessage,
+      thankYouRedirectUrl: form.thankYouRedirectUrl,
+      closeDate: form.closeDate,
+      responseLimit: form.responseLimit,
       createdAt: form.createdAt,
       responseCount: form._count.responses,
     }))

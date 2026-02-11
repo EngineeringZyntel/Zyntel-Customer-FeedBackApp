@@ -25,7 +25,12 @@ export async function GET(
         description: true,
         fields: true,
         logoData: true,
+        thankYouMessage: true,
+        thankYouRedirectUrl: true,
+        closeDate: true,
+        responseLimit: true,
         createdAt: true,
+        _count: { select: { responses: true } },
       },
     })
     
@@ -35,8 +40,20 @@ export async function GET(
         { status: 404 }
       )
     }
-    
-    return NextResponse.json({ form })
+
+    const { _count, ...formData } = form
+    const responseCount = _count.responses
+    const isClosed = form.closeDate ? new Date() > form.closeDate : false
+    const isLimitReached = form.responseLimit != null && responseCount >= form.responseLimit
+
+    return NextResponse.json({
+      form: {
+        ...formData,
+        responseCount,
+        isClosed,
+        isLimitReached,
+      },
+    })
   } catch (error) {
     console.error('Get form error:', error)
     return NextResponse.json(

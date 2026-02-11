@@ -91,13 +91,51 @@ export default function PublicFormPage() {
     )
   }
 
+  // Form closed (past close date)
+  if (form.isClosed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-secondary px-4">
+        <Card className="max-w-md w-full text-center">
+          <div className="text-5xl mb-4">📋</div>
+          <h2 className="text-2xl font-bold mb-2">Form closed</h2>
+          <p className="text-text-secondary">This form is no longer accepting responses.</p>
+        </Card>
+      </div>
+    )
+  }
+
+  // Response limit reached
+  if (form.isLimitReached) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-secondary px-4">
+        <Card className="max-w-md w-full text-center">
+          <div className="text-5xl mb-4">✓</div>
+          <h2 className="text-2xl font-bold mb-2">Response limit reached</h2>
+          <p className="text-text-secondary">This form has received the maximum number of responses.</p>
+        </Card>
+      </div>
+    )
+  }
+
   if (submitted) {
+    const thankYouMessage = form.thankYouMessage?.trim() || 'Your response has been submitted successfully.'
+    const redirectUrl = form.thankYouRedirectUrl?.trim()
+
+    if (redirectUrl) {
+      setTimeout(() => {
+        window.location.href = redirectUrl
+      }, 3000)
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-secondary px-4">
         <Card className="max-w-md w-full text-center">
           <div className="text-6xl mb-4">✓</div>
           <h2 className="text-2xl font-bold mb-2">Thank you!</h2>
-          <p className="text-text-secondary">Your response has been submitted successfully.</p>
+          <p className="text-text-secondary whitespace-pre-line">{thankYouMessage}</p>
+          {redirectUrl && (
+            <p className="text-sm text-text-secondary mt-4">Redirecting you in a few seconds...</p>
+          )}
         </Card>
       </div>
     )

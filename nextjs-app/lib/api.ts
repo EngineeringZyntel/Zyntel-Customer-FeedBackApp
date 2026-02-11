@@ -102,6 +102,12 @@ export const formsApi = {
       method: 'DELETE',
     })
   },
+
+  duplicate: async (formId: number) => {
+    return apiRequest(`/forms/duplicate/${formId}`, {
+      method: 'POST',
+    })
+  },
 }
 
 // Responses API

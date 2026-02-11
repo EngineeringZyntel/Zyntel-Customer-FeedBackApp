@@ -22,17 +22,21 @@ model User {
 }
 
 model Form {
-  id          Int        @id @default(autoincrement())
-  userId      Int        @map("user_id")
-  title       String     @db.VarChar(255)
-  description String?    @db.Text
-  formCode    String     @unique @map("form_code") @db.VarChar(20)
-  fields      Json       // JSONB in PostgreSQL
-  logoData    String?    @map("logo_data") @db.Text
-  createdAt   DateTime   @default(now()) @map("created_at")
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  responses   Response[]
-  
+  id                  Int        @id @default(autoincrement())
+  userId              Int        @map("user_id")
+  title               String     @db.VarChar(255)
+  description         String?    @db.Text
+  formCode            String     @unique @map("form_code") @db.VarChar(20)
+  fields              Json       // JSONB in PostgreSQL
+  logoData            String?    @map("logo_data") @db.Text
+  thankYouMessage     String?    @map("thank_you_message") @db.Text
+  thankYouRedirectUrl String?    @map("thank_you_redirect_url") @db.VarChar(500)
+  closeDate           DateTime?  @map("close_date") @db.Timestamptz(6)
+  responseLimit       Int?       @map("response_limit")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses           Response[]
+
   @@map("forms")
 }
 

@@ -20,13 +20,57 @@ interface FormField {
   maxRating?: number
 }
 
+const TEMPLATES: { name: string; title: string; description: string; fields: FormField[] }[] = [
+  {
+    name: 'Event feedback',
+    title: 'Event Feedback',
+    description: 'Help us improve future events. Your feedback is valuable.',
+    fields: [
+      { label: 'How would you rate the event?', type: 'rating', maxRating: 5 },
+      { label: 'What did you enjoy most?', type: 'textarea' },
+      { label: 'What could we improve?', type: 'textarea' },
+      { label: 'Would you attend again?', type: 'select', options: ['Yes', 'No', 'Maybe'] },
+    ],
+  },
+  {
+    name: 'NPS',
+    title: 'Net Promoter Score',
+    description: 'How likely are you to recommend us to a friend or colleague?',
+    fields: [
+      { label: 'On a scale of 0–10, how likely are you to recommend us?', type: 'rating', maxRating: 10 },
+      { label: 'What is the main reason for your score?', type: 'textarea' },
+    ],
+  },
+  {
+    name: 'Contact',
+    title: 'Contact Us',
+    description: 'Send us a message and we\'ll get back to you.',
+    fields: [
+      { label: 'Your name', type: 'text' },
+      { label: 'Email', type: 'email' },
+      { label: 'Subject', type: 'select', options: ['General inquiry', 'Support', 'Feedback', 'Other'] },
+      { label: 'Message', type: 'textarea' },
+    ],
+  },
+]
+
 export default function CreateFormPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [fields, setFields] = useState<FormField[]>([])
+  const [thankYouMessage, setThankYouMessage] = useState('')
+  const [thankYouRedirectUrl, setThankYouRedirectUrl] = useState('')
+  const [closeDate, setCloseDate] = useState('')
+  const [responseLimit, setResponseLimit] = useState<number | ''>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  const applyTemplate = (t: (typeof TEMPLATES)[0]) => {
+    setTitle(t.title)
+    setDescription(t.description)
+    setFields(t.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })))
+  }
 
   const addField = () => {
     setFields([...fields, { label: '', type: 'text' }])
@@ -105,6 +149,10 @@ export default function CreateFormPage() {
           options: f.options?.filter(opt => opt.trim()),
           maxRating: f.maxRating || 5,
         })),
+        thankYouMessage: thankYouMessage.trim() || undefined,
+        thankYouRedirectUrl: thankYouRedirectUrl.trim() || undefined,
+        closeDate: closeDate ? new Date(closeDate).toISOString() : undefined,
+        responseLimit: responseLimit === '' ? undefined : Number(responseLimit),
       })
       
       router.push('/dashboard')
@@ -119,6 +167,24 @@ export default function CreateFormPage() {
     <div className="min-h-screen bg-bg-secondary py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Create New Form</h1>
+
+        <Card className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">Start from a template</h2>
+          <p className="text-sm text-text-secondary mb-4">Pre-built forms you can customize.</p>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATES.map((t) => (
+              <Button
+                key={t.name}
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => applyTemplate(t)}
+              >
+                {t.name}
+              </Button>
+            ))}
+          </div>
+        </Card>
 
         <form onSubmit={handleSubmit}>
           <Card className="mb-6">
@@ -150,6 +216,54 @@ export default function CreateFormPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe what this form is for..."
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1.5">
+                  Thank-you message (optional)
+                </label>
+                <textarea
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  rows={2}
+                  value={thankYouMessage}
+                  onChange={(e) => setThankYouMessage(e.target.value)}
+                  placeholder="e.g., Thanks for your feedback! We'll be in touch."
+                />
+              </div>
+
+              <Input
+                label="Redirect URL after submit (optional)"
+                type="url"
+                value={thankYouRedirectUrl}
+                onChange={(e) => setThankYouRedirectUrl(e.target.value)}
+                placeholder="https://..."
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5">
+                    Close date (optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={closeDate}
+                    onChange={(e) => setCloseDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5">
+                    Response limit (optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={responseLimit}
+                    onChange={(e) => setResponseLimit(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    placeholder="e.g., 100"
+                  />
+                </div>
               </div>
             </div>
           </Card>

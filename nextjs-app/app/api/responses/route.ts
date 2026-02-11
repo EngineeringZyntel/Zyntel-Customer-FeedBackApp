@@ -25,15 +25,12 @@ export async function POST(request: NextRequest) {
     
     const { formCode, responseData } = validationResult.data
     
-    // Find form
+    // Find form with response count
     const form = await prisma.form.findUnique({
       where: { formCode },
       include: {
-        user: {
-          select: {
-            email: true,
-          },
-        },
+        _count: { select: { responses: true } },
+        user: { select: { email: true } },
       },
     })
     
@@ -41,6 +38,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Form not found' },
         { status: 404 }
+      )
+    }
+
+    // Check if form is closed (close date passed)
+    if (form.closeDate && new Date() > form.closeDate) {
+      return NextResponse.json(
+        { error: 'This form is no longer accepting responses.' },
+        { status: 403 }
+      )
+    }
+
+    // Check response limit
+    if (form.responseLimit != null && form._count.responses >= form.responseLimit) {
+      return NextResponse.json(
+        { error: 'This form has reached its response limit.' },
+        { status: 403 }
       )
     }
     

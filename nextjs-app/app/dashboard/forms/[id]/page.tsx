@@ -77,6 +77,100 @@ export default function FormDetailsPage() {
     }
   }
 
+  const formLink = form ? `${typeof window !== 'undefined' ? window.location.origin : ''}/form/${form?.formCode}` : ''
+
+  const downloadQrCode = () => {
+    if (!qrCode || !form) return
+    const link = document.createElement('a')
+    link.href = qrCode
+    link.download = `${form.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-qrcode.png`
+    link.click()
+  }
+
+  const printQrCode = () => {
+    if (!qrCode || !form) return
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Please allow pop-ups to print the QR code.')
+      return
+    }
+    const title = form.title || 'Feedback Form'
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${title}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 24px; text-align: center; max-width: 400px; margin: 0 auto; }
+            h1 { font-size: 1.25rem; margin-bottom: 8px; }
+            p { color: #64748b; font-size: 0.875rem; margin-bottom: 16px; word-break: break-all; }
+            img { max-width: 256px; height: auto; }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <p>Scan to open the form</p>
+          <img src="${qrCode}" alt="QR Code" />
+          <p style="margin-top: 16px;">${formLink}</p>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
+  }
+
+  const exportCSV = () => {
+    if (!form || !responses.length) return
+    const allKeys = new Set<string>()
+    responses.forEach((r: any) => {
+      const data = r.responseData || {}
+      Object.keys(data).forEach((k) => allKeys.add(k))
+    })
+    const headers = ['Submitted At', ...Array.from(allKeys)]
+    const escape = (v: string) => {
+      const s = String(v ?? '')
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`
+      return s
+    }
+    const rows = responses.map((r: any) => {
+      const data = r.responseData || {}
+      const submittedAt = r.submittedAt ? new Date(r.submittedAt).toISOString() : ''
+      return [submittedAt, ...Array.from(allKeys).map((k) => escape(Array.isArray(data[k]) ? data[k].join(', ') : String(data[k] ?? '')))]
+    })
+    const csv = [headers.map(escape).join(','), ...rows.map((row) => row.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${form.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-responses.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const handleDuplicate = async () => {
+    if (!form) return
+    setIsDuplicating(true)
+    try {
+      const result = await formsApi.duplicate(form.id) as { form: { id: number } }
+      router.push(`/dashboard/forms/${result.form.id}`)
+    } catch (err: any) {
+      alert(err.message || 'Failed to duplicate form')
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
+
+  const embedCode = formLink ? `<iframe src="${formLink}" width="600" height="600" frameborder="0" title="${form?.title || 'Form'}"></iframe>` : ''
+  const copyEmbedCode = () => {
+    if (!embedCode) return
+    navigator.clipboard.writeText(embedCode)
+    alert('Embed code copied to clipboard!')
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -105,9 +199,12 @@ export default function FormDetailsPage() {
               {form.description && (
                 <p className="text-text-secondary mb-4">{form.description}</p>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" onClick={copyLink}>
                   Copy Link
+                </Button>
+                <Button variant="secondary" size="sm" onClick={handleDuplicate} disabled={isDuplicating}>
+                  {isDuplicating ? 'Duplicating…' : 'Duplicate Form'}
                 </Button>
                 <Button
                   variant="danger"
@@ -130,9 +227,24 @@ export default function FormDetailsPage() {
             {qrCode && (
               <div className="text-center">
                 <img src={qrCode} alt="QR Code" className="mx-auto mb-4" />
-                <p className="text-xs text-text-secondary font-mono break-all">
+                <p className="text-xs text-text-secondary font-mono break-all mb-4">
                   {form.formCode}
                 </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <Button variant="secondary" size="sm" onClick={downloadQrCode}>
+                    Download
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={printQrCode}>
+                    Print
+                  </Button>
+                </div>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h4 className="text-sm font-medium mb-2">Embed on your site</h4>
+                  <pre className="text-xs bg-bg-secondary p-2 rounded overflow-x-auto max-h-20 overflow-y-auto">{embedCode}</pre>
+                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={copyEmbedCode}>
+                    Copy embed code
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -165,6 +277,13 @@ export default function FormDetailsPage() {
         {/* Responses Tab */}
         {activeTab === 'responses' && (
           <div className="space-y-4">
+            {responses.length > 0 && (
+              <div className="flex justify-end">
+                <Button variant="secondary" size="sm" onClick={exportCSV}>
+                  Export CSV
+                </Button>
+              </div>
+            )}
             {responses.length === 0 ? (
               <Card>
                 <div className="text-center py-12 text-text-secondary">

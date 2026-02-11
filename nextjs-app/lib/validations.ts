@@ -28,6 +28,10 @@ export const createFormSchema = z.object({
     maxRating: z.number().optional(),
   })),
   logoData: z.string().optional(),
+  thankYouMessage: z.string().max(1000).optional(),
+  thankYouRedirectUrl: z.string().max(500).optional(),
+  closeDate: z.string().optional(),
+  responseLimit: z.number().int().min(1).optional().nullable(),
 })
 
 export const submitResponseSchema = z.object({
