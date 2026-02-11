@@ -169,12 +169,22 @@ export default function PublicFormPage() {
                     {field.options.map((option, optIdx) => (
                       <label key={optIdx} className="flex items-center space-x-2 cursor-pointer">
                         <input
-                          type="radio"
-                          name={field.label}
+                          type="checkbox"
                           value={option}
-                          required
                           className="w-4 h-4 text-primary"
-                          onChange={(e) => handleFieldChange(field.label, e.target.value)}
+                          onChange={(e) => {
+                            const current = responses[field.label] || []
+                            const arr = Array.isArray(current) ? current : (typeof current === 'string' && current ? current.split(', ') : [])
+                            const updated = e.target.checked
+                              ? [...arr, option]
+                              : arr.filter((v: string) => v !== option)
+                            handleFieldChange(field.label, updated.join(', '))
+                          }}
+                          checked={(() => {
+                            const current = responses[field.label]
+                            const arr = Array.isArray(current) ? current : (typeof current === 'string' && current ? current.split(', ') : [])
+                            return arr.includes(option)
+                          })()}
                         />
                         <span>{option}</span>
                       </label>
