@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateFormCode } from '@/lib/utils'
@@ -45,7 +46,7 @@ export async function POST(
         title: `${existing.title} (copy)`,
         description: existing.description,
         formCode,
-        fields: existing.fields,
+        fields: existing.fields as Prisma.InputJsonValue,
         logoData: existing.logoData,
         thankYouMessage: existing.thankYouMessage,
         thankYouRedirectUrl: existing.thankYouRedirectUrl,
