@@ -44,12 +44,22 @@ export async function DELETE(
       )
     }
     
-    // Delete form (cascade will delete responses)
-    await prisma.form.delete({
+    // Soft delete form
+    const deletedForm = await prisma.form.update({
       where: { id: formId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
     })
     
-    return NextResponse.json({ message: 'Form deleted successfully' })
+    return NextResponse.json({
+      message: 'Form moved to trash',
+      form: {
+        id: deletedForm.id,
+        title: deletedForm.title,
+      },
+    })
   } catch (error) {
     console.error('Delete form error:', error)
     return NextResponse.json(

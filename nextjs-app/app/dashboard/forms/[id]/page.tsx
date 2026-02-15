@@ -27,6 +27,7 @@ export default function FormDetailsPage() {
   const [qrCode, setQrCode] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'responses' | 'analytics'>('responses')
+  const [responseView, setResponseView] = useState<'cards' | 'table'>('cards') // New state for view toggle
 
   useEffect(() => {
     loadData()
@@ -278,7 +279,23 @@ export default function FormDetailsPage() {
         {activeTab === 'responses' && (
           <div className="space-y-4">
             {responses.length > 0 && (
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <Button
+                    variant={responseView === 'cards' ? 'primary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setResponseView('cards')}
+                  >
+                    Card View
+                  </Button>
+                  <Button
+                    variant={responseView === 'table' ? 'primary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setResponseView('table')}
+                  >
+                    Table View
+                  </Button>
+                </div>
                 <Button variant="secondary" size="sm" onClick={exportCSV}>
                   Export CSV
                 </Button>
@@ -290,7 +307,8 @@ export default function FormDetailsPage() {
                   No responses yet. Share your form to start collecting feedback!
                 </div>
               </Card>
-            ) : (
+            ) : responseView === 'cards' ? (
+              // Card View (existing)
               responses.map((response, idx) => (
                 <Card key={response.id}>
                   <div className="flex justify-between items-start mb-4">
@@ -310,6 +328,36 @@ export default function FormDetailsPage() {
                   </div>
                 </Card>
               ))
+            ) : (
+              // Table View (new)
+              <Card>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-3 font-medium text-text-secondary">#</th>
+                        <th className="text-left p-3 font-medium text-text-secondary">Submitted At</th>
+                        {responses[0] && Object.keys(responses[0].responseData as Record<string, any>).map((key) => (
+                          <th key={key} className="text-left p-3 font-medium text-text-secondary">{key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {responses.map((response, idx) => (
+                        <tr key={response.id} className="border-b border-border hover:bg-bg-secondary">
+                          <td className="p-3 text-text-secondary">{responses.length - idx}</td>
+                          <td className="p-3 text-text-secondary">{formatDate(response.submittedAt)}</td>
+                          {Object.values(response.responseData as Record<string, any>).map((value, vIdx) => (
+                            <td key={vIdx} className="p-3">
+                              {Array.isArray(value) ? value.join(', ') : String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             )}
           </div>
         )}

@@ -141,3 +141,22 @@ export const qrCodeApi = {
   },
 }
 
+// Trash API
+export const trashApi = {
+  getAll: async () => {
+    return apiRequest('/trash')
+  },
+  
+  restore: async (formId: number) => {
+    return apiRequest(`/trash/restore/${formId}`, {
+      method: 'POST',
+    })
+  },
+  
+  permanentDelete: async (formId: number) => {
+    return apiRequest(`/trash/${formId}`, {
+      method: 'DELETE',
+    })
+  },
+}
+

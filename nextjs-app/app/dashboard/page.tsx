@@ -100,6 +100,12 @@ export default function DashboardPage() {
               Zyntel Feedback
             </Link>
             <div className="flex gap-4 items-center">
+              <Link href="/help">
+                <Button variant="ghost">Help</Button>
+              </Link>
+              <Link href="/trash">
+                <Button variant="ghost">Trash</Button>
+              </Link>
               <Link href="/admin">
                 <Button variant="ghost">Admin Panel</Button>
               </Link>

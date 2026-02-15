@@ -29,7 +29,12 @@ export default function LoginPage() {
       const data = await authApi.login(email, password)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      const message = err.message || 'Login failed'
+      setError(
+        message.includes('Invalid credentials') || message.includes('401')
+          ? 'Invalid email or password. Check your details or sign up if you don\'t have an account.'
+          : message
+      )
     } finally {
       setIsLoading(false)
     }

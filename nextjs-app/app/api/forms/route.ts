@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
     const forms = await prisma.form.findMany({
       where: {
         userId: targetUserId,
+        isDeleted: false, // Exclude deleted forms
       },
       include: {
         _count: {

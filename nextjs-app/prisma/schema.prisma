@@ -12,32 +12,75 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique @db.VarChar(255)
-  passwordHash  String    @map("password_hash") @db.VarChar(255)
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id            Int            @id @default(autoincrement())
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  name          String?        @db.VarChar(255)
+  createdAt     DateTime       @default(now()) @map("created_at")
   forms         Form[]
+  settings      UserSettings?
   
   @@map("users")
 }
 
+model UserSettings {
+  id                      Int      @id @default(autoincrement())
+  userId                  Int      @unique @map("user_id")
+  emailNotifications      Boolean  @default(true) @map("email_notifications")
+  notificationEmail       String?  @map("notification_email") @db.VarChar(255)
+  defaultBrandingColors   Json?    @map("default_branding_colors")
+  defaultLogo             String?  @map("default_logo") @db.Text
+  smtpHost                String?  @map("smtp_host") @db.VarChar(255)
+  smtpPort                Int?     @map("smtp_port")
+  smtpUser                String?  @map("smtp_user") @db.VarChar(255)
+  smtpPassword            String?  @map("smtp_password") @db.VarChar(255)
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
+}
+
 model Form {
-  id                  Int        @id @default(autoincrement())
-  userId              Int        @map("user_id")
-  title               String     @db.VarChar(255)
-  description         String?    @db.Text
-  formCode            String     @unique @map("form_code") @db.VarChar(20)
-  fields              Json       // JSONB in PostgreSQL
-  logoData            String?    @map("logo_data") @db.Text
-  thankYouMessage     String?    @map("thank_you_message") @db.Text
-  thankYouRedirectUrl String?    @map("thank_you_redirect_url") @db.VarChar(500)
-  closeDate           DateTime?  @map("close_date") @db.Timestamptz(6)
-  responseLimit       Int?       @map("response_limit")
-  createdAt           DateTime   @default(now()) @map("created_at")
-  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  Int            @id @default(autoincrement())
+  userId              Int            @map("user_id")
+  title               String         @db.VarChar(255)
+  description         String?        @db.Text
+  formCode            String         @unique @map("form_code") @db.VarChar(20)
+  fields              Json           // JSONB in PostgreSQL
+  logoData            String?        @map("logo_data") @db.Text
+  thankYouMessage     String?        @map("thank_you_message") @db.Text
+  thankYouRedirectUrl String?        @map("thank_you_redirect_url") @db.VarChar(500)
+  closeDate           DateTime?      @map("close_date") @db.Timestamptz(6)
+  responseLimit       Int?           @map("response_limit")
+  customization       Json?          // colors, fonts, shape, etc.
+  customDomain        String?        @map("custom_domain") @db.VarChar(255)
+  emailNotifications  Boolean        @default(false) @map("email_notifications")
+  notificationEmails  String?        @map("notification_emails") @db.Text // comma-separated
+  isDeleted           Boolean        @default(false) @map("is_deleted")
+  deletedAt           DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  version             Int            @default(1)
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   responses           Response[]
+  versions            FormVersion[]
 
   @@map("forms")
+  @@index([userId, isDeleted])
+}
+
+model FormVersion {
+  id          Int      @id @default(autoincrement())
+  formId      Int      @map("form_id")
+  version     Int
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  fields      Json
+  snapshot    Json     // complete form state at this version
+  createdAt   DateTime @default(now()) @map("created_at")
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  @@map("form_versions")
+  @@index([formId, version])
 }
 
 model Response {
