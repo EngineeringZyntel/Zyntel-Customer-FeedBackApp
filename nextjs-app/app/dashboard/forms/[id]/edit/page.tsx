@@ -8,11 +8,8 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import {
-  FormBuilderLeftSidebar,
   type FieldType as SidebarFieldType,
   type FormLayoutOption,
 } from '@/components/form-builder/FormBuilderLeftSidebar'
@@ -21,10 +18,13 @@ import {
   type FormCustomization,
 } from '@/components/form-builder/FormBuilderRightSidebar'
 import type { FormHeaderConfig } from '@/components/form-builder/FormHeaderSection'
-import { FormPreviewModal } from '@/components/form-builder/FormPreviewModal'
+import { FormBuilderOpnFormLayout } from '@/components/form-builder/FormBuilderOpnFormLayout'
+import { FormStructureSection } from '@/components/form-builder/FormStructureSection'
+import { TemplatesPanel } from '@/components/form-builder/TemplatesPanel'
 import { formsApi } from '@/lib/api'
+import { FORM_TEMPLATES } from '@/lib/form-templates'
 import { getCurrentUser } from '@/lib/jwt'
-import { cn } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/utils'
 
 interface FormField {
   label: string
@@ -52,8 +52,9 @@ export default function EditFormPage() {
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null)
   const [customization, setCustomization] = useState<FormCustomization>({})
   const [logoData, setLogoData] = useState<string | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
   const [formLayout, setFormLayout] = useState<FormLayoutOption>('centered')
+  const [editedAt, setEditedAt] = useState<string>('')
+  const [copySettingsOpen, setCopySettingsOpen] = useState(false)
 
   const headerConfig: FormHeaderConfig = {
     logoData: logoData ?? undefined,
@@ -69,6 +70,12 @@ export default function EditFormPage() {
     if (config.headerBackgroundColor !== undefined) {
       setCustomization((c) => ({ ...c, headerBackgroundColor: config.headerBackgroundColor }))
     }
+  }
+
+  const applyTemplate = (t: (typeof FORM_TEMPLATES)[number]) => {
+    setTitle(t.title)
+    setDescription(t.description)
+    setFields(t.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })))
   }
 
   /** Add a field from the left sidebar; inserts at insertAtIndex or end */
@@ -126,6 +133,7 @@ export default function EditFormPage() {
       setThankYouRedirectUrl(f.thankYouRedirectUrl || '')
       setCloseDate(f.closeDate ? new Date(f.closeDate).toISOString().slice(0, 16) : '')
       setResponseLimit(f.responseLimit ?? '')
+      setEditedAt(f.updatedAt ? `Edited ${formatRelativeTime(f.updatedAt)}` : '')
     } catch (err: any) {
       setError(err.message || 'Failed to load form')
     } finally {
@@ -230,273 +238,159 @@ export default function EditFormPage() {
     )
   }
 
+  const saveForm = () => {
+    handleSubmit({ preventDefault: () => {} } as unknown as React.FormEvent<HTMLFormElement>)
+  }
+
   return (
-    <div className="min-h-screen bg-bg-secondary flex flex-col">
-      <header className="shrink-0 flex items-center justify-between gap-4 px-4 py-3 bg-white border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900">Edit Form</h1>
-        <div className="flex items-center gap-2">
-          <Link href={`/dashboard/forms/${formId}`}>
-            <Button type="button" variant="ghost">Cancel</Button>
-          </Link>
-          <Button type="button" variant="secondary" onClick={() => setShowPreview(true)}>
-            Preview
-          </Button>
+    <FormBuilderOpnFormLayout
+      backHref={`/dashboard/forms/${formId}`}
+      formTitle={title || 'Untitled form'}
+      editedAt={editedAt}
+      onSave={saveForm}
+      isSaving={isSubmitting}
+      templatesSection={<TemplatesPanel templates={FORM_TEMPLATES} onSelect={applyTemplate} />}
+      informationSection={
+        <div className="space-y-4">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Form Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Customer Feedback"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your form..."
+              rows={3}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+            <input
+              type="text"
+              placeholder="Add tags"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-slate-500">To organize your forms (hidden to respondents).</p>
+          </div>
           <Button
             type="button"
-            variant="primary"
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
-            }}
-            isLoading={isSubmitting}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-slate-600"
+            onClick={() => setCopySettingsOpen(!copySettingsOpen)}
           >
-            Publish
+            <span className="mr-2">📋</span>
+            Copy another form&apos;s settings
           </Button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        <FormBuilderLeftSidebar
-          onAddField={handleAddFieldFromSidebar}
-          formLayout={formLayout}
-          onFormLayoutChange={setFormLayout}
-          formSettings={{
-            thankYouMessage,
-            thankYouRedirectUrl,
-            closeDate,
-            responseLimit,
-            onThankYouMessageChange: setThankYouMessage,
-            onThankYouRedirectUrlChange: setThankYouRedirectUrl,
-            onCloseDateChange: setCloseDate,
-            onResponseLimitChange: setResponseLimit,
-          }}
-        />
-
-        <main className="flex-1 overflow-y-auto py-6 px-6">
-          <form id="edit-form" onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-                {error}
+          {copySettingsOpen && (
+            <p className="text-xs text-slate-500">Open a form to copy from the dashboard, then edit it here.</p>
+          )}
+          <div className="border-t border-slate-200 pt-3">
+            <p className="mb-2 text-xs font-medium text-slate-500">Form settings</p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-slate-600">Thank-you message</label>
+                <textarea
+                  value={thankYouMessage}
+                  onChange={(e) => setThankYouMessage(e.target.value)}
+                  placeholder="Thanks for your feedback!"
+                  rows={2}
+                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                />
               </div>
-            )}
-
-            <div className="space-y-4">
-              {fields.map((field, index) => {
-                const isLayoutBlock = ['paragraph', 'heading1', 'heading2', 'heading3', 'divider', 'title', 'label'].includes(field.type)
-                
-                return (
-                <div key={index} className="space-y-2">
-                  {index > 0 && (
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setInsertAtIndex(index)}
-                        className={cn(
-                          'flex items-center gap-2 py-2 px-4 text-sm text-gray-500 transition hover:text-primary',
-                          insertAtIndex === index && 'text-primary font-medium'
-                        )}
-                      >
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold shadow-sm">+</span>
-                        {insertAtIndex === index ? 'Click a field on the left to add here' : 'Add field here'}
-                      </button>
-                    </div>
-                  )}
-                  <div className="border border-border rounded-lg p-4 bg-bg-secondary">
-                  
-                  {/* Layout blocks have different UI - just show preview */}
-                  {isLayoutBlock ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-gray-500 uppercase">
-                          {field.type === 'divider' ? '⎯ Divider' :
-                           field.type === 'heading1' ? 'H1 Heading' :
-                           field.type === 'heading2' ? 'H2 Heading' :
-                           field.type === 'heading3' ? 'H3 Heading' :
-                           field.type === 'paragraph' ? '¶ Text Block' :
-                           field.type === 'title' ? '📌 Title' :
-                           field.type === 'label' ? '🏷 Label' : field.type}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => removeField(index)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                      
-                      {field.type === 'divider' ? (
-                        <div className="py-4">
-                          <hr className="border-t-2 border-gray-300" />
-                          <p className="text-xs text-gray-400 text-center mt-2">This will appear as a divider line</p>
-                        </div>
-                      ) : (
-                        <>
-                          <label className="block text-xs font-medium text-gray-700 mb-2">
-                            {field.type === 'paragraph' ? 'Text content' : 
-                             field.type === 'title' ? 'Section title' :
-                             field.type === 'label' ? 'Label text' : 'Heading text'}
-                          </label>
-                          <textarea
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                            rows={field.type === 'paragraph' ? 3 : 1}
-                            value={field.label}
-                            onChange={(e) => updateField(index, { label: e.target.value })}
-                            placeholder={
-                              field.type === 'paragraph' ? 'Enter descriptive text or instructions...' :
-                              field.type === 'heading1' ? 'Major Section' :
-                              field.type === 'heading2' ? 'Subsection' :
-                              field.type === 'heading3' ? 'Minor Heading' :
-                              field.type === 'title' ? 'Section Title' :
-                              'Label Text'
-                            }
-                          />
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <Input
-                        label="Field Label"
-                        value={field.label}
-                        onChange={(e) => updateField(index, { label: e.target.value })}
-                        placeholder="e.g., Your Name"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">Field Type</label>
-                        <select
-                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                          value={field.type}
-                          onChange={(e) => updateField(index, { type: e.target.value })}
-                        >
-                          <optgroup label="Questions">
-                            <option value="text">Short answer</option>
-                            <option value="textarea">Long answer</option>
-                            <option value="multiple">Multiple choice</option>
-                            <option value="checkbox">Checkboxes</option>
-                            <option value="select">Dropdown</option>
-                            <option value="number">Number</option>
-                            <option value="email">Email</option>
-                            <option value="tel">Phone number</option>
-                            <option value="link">Link</option>
-                            <option value="date">Date</option>
-                            <option value="time">Time</option>
-                            <option value="linearScale">Linear scale</option>
-                            <option value="rating">Rating</option>
-                          </optgroup>
-                          <optgroup label="Layout">
-                            <option value="paragraph">Text</option>
-                            <option value="heading1">Heading 1</option>
-                            <option value="heading2">Heading 2</option>
-                            <option value="heading3">Heading 3</option>
-                            <option value="divider">Divider</option>
-                            <option value="title">Title</option>
-                            <option value="label">Label</option>
-                          </optgroup>
-                        </select>
-                      </div>
-                    </div>
-
-                    {(field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-text-primary mb-2">Options</label>
-                        <div className="space-y-2">
-                          {field.options?.map((option, optIdx) => (
-                            <div key={optIdx} className="flex gap-2">
-                              <Input
-                                value={option}
-                                onChange={(e) => updateOption(index, optIdx, e.target.value)}
-                                placeholder={`Option ${optIdx + 1}`}
-                              />
-                              <Button type="button" variant="danger" size="sm" onClick={() => removeOption(index, optIdx)}>Remove</Button>
-                            </div>
-                          ))}
-                          <Button type="button" variant="ghost" size="sm" onClick={() => addOption(index)}>+ Add Option</Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {(field.type === 'rating' || field.type === 'linearScale') && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-text-primary mb-1.5">
-                            {field.type === 'rating' ? 'Max Rating (Stars)' : 'Max Scale (1 to X)'}
-                          </label>
-                          <Input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={field.maxRating || 5}
-                            onChange={(e) => updateField(index, { maxRating: parseInt(e.target.value) || 5 })}
-                          />
-                        </div>
-                        
-                        {field.type === 'linearScale' && (
-                          <div>
-                            <label className="block text-sm font-medium text-text-primary mb-2">
-                              Scale Labels (optional)
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Input
-                                placeholder="Min label (e.g., Not at all)"
-                                value={field.scaleLabels?.min || ''}
-                                onChange={(e) => updateField(index, { 
-                                  scaleLabels: { min: e.target.value, max: field.scaleLabels?.max || '' }
-                                })}
-                              />
-                              <Input
-                                placeholder="Max label (e.g., Extremely)"
-                                value={field.scaleLabels?.max || ''}
-                                onChange={(e) => updateField(index, { 
-                                  scaleLabels: { min: field.scaleLabels?.min || '', max: e.target.value }
-                                })}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <Button type="button" variant="danger" size="sm" onClick={() => removeField(index)} className="mt-4">
-                      Remove Field
-                    </Button>
-                    </>
-                    )}
-                  </div>
-                </div>
-            );
-          })}
+              <div>
+                <label className="block text-xs text-slate-600">Redirect URL (optional)</label>
+                <input
+                  type="url"
+                  value={thankYouRedirectUrl}
+                  onChange={(e) => setThankYouRedirectUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600">Close date (optional)</label>
+                <input
+                  type="datetime-local"
+                  value={closeDate}
+                  onChange={(e) => setCloseDate(e.target.value)}
+                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-600">Response limit (optional)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={responseLimit === '' ? '' : responseLimit}
+                  onChange={(e) => setResponseLimit(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                  placeholder="e.g. 100"
+                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                />
+              </div>
             </div>
-
-            {fields.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-200 py-16">
-                <p className="text-sm text-gray-500">No fields yet. Add fields from the left sidebar.</p>
-                <p className="text-xs text-gray-400">Choose Input, Choice, Rating, or Layout and click to add.</p>
-              </div>
-            )}
-          </form>
-        </main>
-
-        <FormBuilderRightSidebar
-          headerConfig={headerConfig}
-          customization={customization}
-          onHeaderChange={onHeaderChange}
-          onCustomizationChange={setCustomization}
+          </div>
+        </div>
+      }
+      formStructureSection={
+        <FormStructureSection
+          fields={fields}
+          onAddField={handleAddFieldFromSidebar}
+          updateField={updateField}
+          removeField={removeField}
+          addOption={addOption}
+          updateOption={updateOption}
+          removeOption={removeOption}
+          onReorder={setFields}
         />
-      </div>
-
-      <FormPreviewModal
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        title={title}
-        description={description}
-        fields={fields}
-        logoData={logoData ?? undefined}
-        customization={customization}
-        formLayout={formLayout}
-      />
-    </div>
-  );
+      }
+      customizationSection={
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Form layout</label>
+            <select
+              value={formLayout}
+              onChange={(e) => setFormLayout(e.target.value as FormLayoutOption)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="centered">Centered card</option>
+              <option value="fullWidth">Full width</option>
+            </select>
+          </div>
+          <FormBuilderRightSidebar
+            headerConfig={headerConfig}
+            customization={customization}
+            onHeaderChange={onHeaderChange}
+            onCustomizationChange={setCustomization}
+            dashboardHref=""
+            inline
+            initialTab="customize"
+          />
+        </div>
+      }
+      preview={{
+        title,
+        description,
+        fields,
+        logoData: logoData ?? undefined,
+        customization,
+        formLayout,
+        submitLabel: 'Submit Feedback',
+      }}
+    />
+  )
 }

@@ -121,6 +121,8 @@ export default function PublicFormPage() {
   if (submitted) {
     const thankYouMessage = form.thankYouMessage?.trim() || 'Your response has been submitted successfully.'
     const redirectUrl = form.thankYouRedirectUrl?.trim()
+    const custom = (form.customization as Record<string, string>) || {}
+    const primaryColor = custom.primaryColor || '#0066FF'
 
     if (redirectUrl) {
       setTimeout(() => {
@@ -128,15 +130,36 @@ export default function PublicFormPage() {
       }, 3000)
     }
 
+    const handleSubmitAnother = () => {
+      setSubmitted(false)
+      setResponses({})
+      setError('')
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-secondary px-4">
-        <Card className="max-w-md w-full text-center">
-          <div className="text-6xl mb-4">✓</div>
-          <h2 className="text-2xl font-bold mb-2">Thank you!</h2>
-          <p className="text-text-secondary whitespace-pre-line">{thankYouMessage}</p>
-          {redirectUrl && (
-            <p className="text-sm text-text-secondary mt-4">Redirecting you in a few seconds...</p>
-          )}
+      <div className="min-h-screen flex items-center justify-center bg-bg-secondary px-4 py-8 sm:py-12">
+        <Card className="max-w-md w-full text-center overflow-hidden shadow-lg">
+          <div className="p-6 sm:p-8">
+            <div className="text-5xl sm:text-6xl mb-4 sm:mb-5" aria-hidden>✓</div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-text-primary">Thank you!</h2>
+            <p className="text-text-secondary whitespace-pre-line text-sm sm:text-base leading-relaxed break-words">
+              {thankYouMessage}
+            </p>
+            {redirectUrl && (
+              <p className="text-sm text-text-secondary mt-4">Redirecting you in a few seconds...</p>
+            )}
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full sm:w-auto min-w-[200px]"
+                style={{ backgroundColor: primaryColor }}
+                onClick={handleSubmitAnother}
+              >
+                Submit another response
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
     )

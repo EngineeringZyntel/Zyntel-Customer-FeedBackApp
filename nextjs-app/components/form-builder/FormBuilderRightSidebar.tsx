@@ -1,20 +1,18 @@
 /**
  * Form Builder Right Sidebar
- * Contains Header and Body customization options
+ * Home tab (default): themes, reset, dashboard link. Customize tab: collapsible Header + Rest of form.
  */
 
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { FormHeaderSection, type FormHeaderConfig } from './FormHeaderSection'
 import { cn } from '@/lib/utils'
 
 export interface FormCustomization {
-  // Header
   headerBackgroundColor?: string
   headerTextColor?: string
-  
-  // Body/Form
   backgroundColor?: string
   primaryColor?: string
   textColor?: string
@@ -26,11 +24,63 @@ export interface FormCustomization {
   fieldBorderColor?: string
 }
 
+/** Default customization (used for Reset) */
+export const DEFAULT_CUSTOMIZATION: FormCustomization = {}
+
+/** Preset themes for quick toggling */
+export const PRESET_THEMES: Record<string, FormCustomization> = {
+  light: {
+    headerBackgroundColor: '#f8fafc',
+    headerTextColor: '#0f172a',
+    backgroundColor: '#f1f5f9',
+    formBackgroundColor: '#ffffff',
+    primaryColor: '#2563eb',
+    textColor: '#0f172a',
+    fieldBorderColor: '#e2e8f0',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    headerFontSize: '1.5rem',
+    bodyFontSize: '1rem',
+    borderRadius: '0.5rem',
+  },
+  dark: {
+    headerBackgroundColor: '#1e293b',
+    headerTextColor: '#f1f5f9',
+    backgroundColor: '#0f172a',
+    formBackgroundColor: '#1e293b',
+    primaryColor: '#60a5fa',
+    textColor: '#e2e8f0',
+    fieldBorderColor: '#475569',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    headerFontSize: '1.5rem',
+    bodyFontSize: '1rem',
+    borderRadius: '0.5rem',
+  },
+  brand: {
+    headerBackgroundColor: '#0066FF',
+    headerTextColor: '#ffffff',
+    backgroundColor: '#f0f7ff',
+    formBackgroundColor: '#ffffff',
+    primaryColor: '#0066FF',
+    textColor: '#0F1419',
+    fieldBorderColor: '#D1D5DB',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    headerFontSize: '1.75rem',
+    bodyFontSize: '1rem',
+    borderRadius: '0.75rem',
+  },
+}
+
 interface FormBuilderRightSidebarProps {
   headerConfig: FormHeaderConfig
   customization: FormCustomization
   onHeaderChange: (config: FormHeaderConfig) => void
   onCustomizationChange: (customization: FormCustomization) => void
+  /** Dashboard URL for Home tab "Back to Dashboard" link (e.g. /dashboard) */
+  dashboardHref?: string
+  /** When true, render without fixed aside (e.g. inside OpnForm layout) */
+  inline?: boolean
+  /** Initial tab when used inside layout */
+  initialTab?: 'home' | 'customize'
 }
 
 const FONT_OPTIONS = [
@@ -46,70 +96,161 @@ export function FormBuilderRightSidebar({
   customization,
   onHeaderChange,
   onCustomizationChange,
+  dashboardHref = '/dashboard',
+  inline = false,
+  initialTab = 'home',
 }: FormBuilderRightSidebarProps) {
-  const [activeSection, setActiveSection] = useState<'header' | 'body'>('header')
+  const [activeTab, setActiveTab] = useState<'home' | 'customize'>(initialTab)
+  const [customizeOpen, setCustomizeOpen] = useState<'header' | 'body' | null>(null)
 
   const update = (key: keyof FormCustomization, value: string | undefined) => {
     onCustomizationChange({ ...customization, [key]: value })
   }
 
+  const applyTheme = (themeKey: string) => {
+    const theme = PRESET_THEMES[themeKey]
+    if (theme) onCustomizationChange({ ...theme })
+  }
+
+  const resetCustomization = () => {
+    onCustomizationChange({ ...DEFAULT_CUSTOMIZATION })
+  }
+
+  const Wrapper = inline ? 'div' : 'aside'
   return (
-    <aside className="w-80 h-screen bg-white border-l border-gray-200 flex flex-col">
-      {/* Header */}
+    <Wrapper className={inline ? 'w-full' : 'w-80 h-screen bg-white border-l border-gray-200 flex flex-col'}>
       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Customize</h2>
-        <p className="text-xs text-gray-500 mt-1">Style your form appearance</p>
+        <h2 className="text-lg font-semibold text-gray-900">Style</h2>
+        <p className="text-xs text-gray-500 mt-1">Themes &amp; customization</p>
       </div>
 
-      {/* Section Tabs */}
+      {/* Tabs: Home | Customize */}
       <div className="flex border-b border-gray-200">
         <button
-          onClick={() => setActiveSection('header')}
+          type="button"
+          onClick={() => setActiveTab('home')}
           className={cn(
             'flex-1 px-4 py-3 text-sm font-medium transition-colors relative',
-            activeSection === 'header'
-              ? 'text-primary bg-blue-50'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            activeTab === 'home' ? 'text-primary bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           )}
         >
-          Header
-          {activeSection === 'header' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-          )}
+          Home
+          {activeTab === 'home' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
         </button>
         <button
-          onClick={() => setActiveSection('body')}
+          type="button"
+          onClick={() => setActiveTab('customize')}
           className={cn(
             'flex-1 px-4 py-3 text-sm font-medium transition-colors relative',
-            activeSection === 'body'
-              ? 'text-primary bg-blue-50'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            activeTab === 'customize' ? 'text-primary bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           )}
         >
-          Rest of form
-          {activeSection === 'body' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-          )}
+          Customize
+          {activeTab === 'customize' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {activeSection === 'header' ? (
-          <HeaderCustomization 
-            headerConfig={headerConfig} 
-            onHeaderChange={onHeaderChange}
-            customization={customization}
-            onCustomizationChange={onCustomizationChange}
-          />
+        {activeTab === 'home' ? (
+          <div className="p-4 space-y-6">
+            {/* Back to Dashboard */}
+            {dashboardHref && (
+              <Link
+                href={dashboardHref}
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <span aria-hidden>←</span> Back to Dashboard
+              </Link>
+            )}
+
+            {/* Quick themes */}
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Quick themes</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {(['light', 'dark', 'brand'] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => applyTheme(key)}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 text-xs font-medium transition',
+                      key === 'light' && 'border-gray-200 bg-slate-50 hover:border-gray-300',
+                      key === 'dark' && 'border-slate-600 bg-slate-800 text-white hover:border-slate-500',
+                      key === 'brand' && 'border-blue-500 bg-blue-50 text-blue-800 hover:border-blue-600'
+                    )}
+                  >
+                    <span className="w-8 h-8 rounded-full border border-white/30 shrink-0" style={key === 'light' ? { backgroundColor: '#f8fafc' } : key === 'dark' ? { backgroundColor: '#1e293b' } : { backgroundColor: '#0066FF' }} />
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Reset */}
+            <section>
+              <button
+                type="button"
+                onClick={resetCustomization}
+                className="w-full py-2.5 px-4 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                Reset customization
+              </button>
+            </section>
+
+            <p className="text-xs text-gray-400">Switch to Customize for header and form details.</p>
+          </div>
         ) : (
-          <BodyCustomization 
-            customization={customization} 
-            update={update} 
-          />
+          <div className="p-2 space-y-1">
+            {/* Collapsible Header */}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setCustomizeOpen(customizeOpen === 'header' ? null : 'header')}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-900 bg-gray-50 hover:bg-gray-100"
+              >
+                Header
+                <span className="text-gray-500">{customizeOpen === 'header' ? '▼' : '▶'}</span>
+              </button>
+              {customizeOpen === 'header' && (
+                <div className="border-t border-gray-200 bg-white">
+                  <HeaderCustomization
+                    headerConfig={headerConfig}
+                    onHeaderChange={onHeaderChange}
+                    customization={customization}
+                    onCustomizationChange={onCustomizationChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Collapsible Rest of form */}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setCustomizeOpen(customizeOpen === 'body' ? null : 'body')}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-900 bg-gray-50 hover:bg-gray-100"
+              >
+                Rest of form
+                <span className="text-gray-500">{customizeOpen === 'body' ? '▼' : '▶'}</span>
+              </button>
+              {customizeOpen === 'body' && (
+                <div className="border-t border-gray-200 bg-white">
+                  <BodyCustomization customization={customization} update={update} />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={resetCustomization}
+              className="w-full mt-2 py-2 px-4 rounded-lg border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50"
+            >
+              Reset customization
+            </button>
+          </div>
         )}
       </div>
-    </aside>
+    </Wrapper>
   )
 }
 

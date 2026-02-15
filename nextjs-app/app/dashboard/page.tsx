@@ -119,19 +119,44 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Your Forms</h1>
-          <Link href="/dashboard/create">
-            <Button variant="primary">+ Create Form</Button>
-          </Link>
+        {/* Overview strip (Loop-style metrics) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <Card className="p-4">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Forms</p>
+            <p className="text-2xl font-semibold text-gray-900 mt-1">{forms.length}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total responses</p>
+            <p className="text-2xl font-semibold text-gray-900 mt-1">
+              {forms.reduce((sum, f) => sum + (f.responseCount || 0), 0)}
+            </p>
+          </Card>
+        </div>
+
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+          <h1 className="text-2xl font-semibold text-gray-900">Your Forms</h1>
+          <div className="flex gap-2">
+            <Link href="/dashboard/create?ai=1">
+              <Button variant="secondary">✨ Create with AI</Button>
+            </Link>
+            <Link href="/dashboard/create">
+              <Button variant="primary">+ Create Form</Button>
+            </Link>
+          </div>
         </div>
 
         {forms.length === 0 ? (
           <Card>
-            <div className="text-center py-12">
-              <p className="text-text-secondary mb-4">No forms yet. Create your first form!</p>
+            <div className="text-center py-16 px-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-400 mb-4" aria-hidden>
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-medium text-gray-900 mb-2">No forms yet</h2>
+              <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">Create your first form to start collecting feedback from customers.</p>
               <Link href="/dashboard/create">
-                <Button variant="primary">Create Form</Button>
+                <Button variant="primary">Create your first form</Button>
               </Link>
             </div>
           </Card>

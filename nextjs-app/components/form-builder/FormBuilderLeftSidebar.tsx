@@ -31,7 +31,7 @@ export const FORM_LAYOUT_OPTIONS: FormLayoutChoice[] = [
   { id: 'fullWidth', label: 'Full width', description: 'Form stretches to full container width', icon: '▭' },
 ]
 
-const FIELD_TYPES: FieldType[] = [
+export const FIELD_TYPES: FieldType[] = [
   // Input Fields
   { id: 'text', label: 'Short Text', type: 'text', icon: '📝', category: 'input', preview: 'Single line text input' },
   { id: 'textarea', label: 'Long Text', type: 'textarea', icon: '📄', category: 'input', preview: 'Multiple line text area' },

@@ -27,8 +27,8 @@ export default function FormDetailsPage() {
   const [analytics, setAnalytics] = useState<any>(null)
   const [qrCode, setQrCode] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'responses' | 'analytics'>('responses')
-  const [responseView, setResponseView] = useState<'cards' | 'table'>('cards') // New state for view toggle
+  const [activeTab, setActiveTab] = useState<'responses' | 'analytics' | 'share'>('responses')
+  const [responseView, setResponseView] = useState<'cards' | 'table'>('cards')
 
   useEffect(() => {
     loadData()
@@ -234,35 +234,16 @@ export default function FormDetailsPage() {
           </div>
           
           <Card>
-            <h3 className="font-semibold mb-4">QR Code</h3>
-            {qrCode && (
-              <div className="text-center">
-                <img src={qrCode} alt="QR Code" className="mx-auto mb-4" />
-                <p className="text-xs text-text-secondary font-mono break-all mb-4">
-                  {form.formCode}
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button variant="secondary" size="sm" onClick={downloadQrCode}>
-                    Download
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={printQrCode}>
-                    Print
-                  </Button>
-                </div>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <h4 className="text-sm font-medium mb-2">Embed on your site</h4>
-                  <pre className="text-xs bg-bg-secondary p-2 rounded overflow-x-auto max-h-20 overflow-y-auto">{embedCode}</pre>
-                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={copyEmbedCode}>
-                    Copy embed code
-                  </Button>
-                </div>
-              </div>
-            )}
+            <h3 className="font-semibold mb-4">Quick actions</h3>
+            <p className="text-sm text-text-secondary mb-4">Share, embed, or get a QR code from the Share tab below.</p>
+            <Button variant="secondary" size="sm" className="w-full" onClick={() => setActiveTab('share')}>
+              Open Share
+            </Button>
           </Card>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-border">
+        {/* Tabs: Responses | Analytics | Share (OpnForm-style) */}
+        <div className="flex gap-4 mb-6 border-b border-border flex-wrap">
           <button
             onClick={() => setActiveTab('responses')}
             className={`pb-2 px-4 font-medium ${
@@ -282,6 +263,16 @@ export default function FormDetailsPage() {
             }`}
           >
             Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab('share')}
+            className={`pb-2 px-4 font-medium ${
+              activeTab === 'share'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary'
+            }`}
+          >
+            Share
           </button>
         </div>
 
@@ -408,6 +399,62 @@ export default function FormDetailsPage() {
                 </ResponsiveContainer>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Share Tab (OpnForm-style: Link, Embed, QR) */}
+        {activeTab === 'share' && (
+          <div className="space-y-6">
+            <p className="text-sm text-text-secondary">Share your form via link, embed it on your site, or use a QR code.</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="p-5">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <span aria-hidden>🔗</span> Form link
+                </h3>
+                <p className="text-sm text-text-secondary mb-3">Share this link so people can fill out your form.</p>
+                <div className="bg-bg-secondary rounded-lg p-3 font-mono text-xs break-all mb-3">
+                  {formLink}
+                </div>
+                <Button variant="primary" size="sm" className="w-full" onClick={copyLink}>
+                  Copy link
+                </Button>
+              </Card>
+              <Card className="p-5">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <span aria-hidden>📄</span> Embed on your site
+                </h3>
+                <p className="text-sm text-text-secondary mb-3">Paste this code into your website or blog.</p>
+                <pre className="text-xs bg-bg-secondary p-3 rounded overflow-x-auto max-h-24 overflow-y-auto mb-3">
+                  {embedCode}
+                </pre>
+                <Button variant="secondary" size="sm" className="w-full" onClick={copyEmbedCode}>
+                  Copy embed code
+                </Button>
+              </Card>
+              <Card className="p-5">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <span aria-hidden>📱</span> QR code
+                </h3>
+                <p className="text-sm text-text-secondary mb-3">Let people scan to open the form.</p>
+                {qrCode ? (
+                  <>
+                    <div className="flex justify-center mb-3">
+                      <img src={qrCode} alt="QR Code" className="w-32 h-32" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" size="sm" onClick={downloadQrCode}>
+                        Download
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={printQrCode}>
+                        Print
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-text-secondary">Loading QR code…</p>
+                )}
+              </Card>
+            </div>
           </div>
         )}
       </div>

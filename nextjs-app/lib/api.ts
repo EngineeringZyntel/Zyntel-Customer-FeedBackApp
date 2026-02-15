@@ -45,14 +45,24 @@ async function apiRequest<T>(
     ...options,
     headers,
   })
-  
-  const data = await response.json()
-  
-  if (!response.ok) {
-    throw new Error(data.error || 'API request failed')
+
+  let data: { error?: string; [k: string]: unknown }
+  try {
+    const text = await response.text()
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    if (!response.ok) {
+      throw new Error(response.status === 500 ? 'Server error. Please try again.' : 'Request failed')
+    }
+    throw new Error('Invalid response from server')
   }
-  
-  return data
+
+  if (!response.ok) {
+    const message = typeof data?.error === 'string' ? data.error : 'API request failed'
+    throw new Error(message)
+  }
+
+  return data as T
 }
 
 // Auth API

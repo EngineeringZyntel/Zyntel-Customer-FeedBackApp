@@ -6,25 +6,26 @@
 
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, type FormEvent, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
 import {
-  FormBuilderLeftSidebar,
   type FieldType as SidebarFieldType,
-  type FormTemplate,
   type FormLayoutOption,
 } from '@/components/form-builder/FormBuilderLeftSidebar'
+import { FORM_TEMPLATES } from '@/lib/form-templates'
 import {
   FormBuilderRightSidebar,
   type FormCustomization,
 } from '@/components/form-builder/FormBuilderRightSidebar'
 import type { FormHeaderConfig } from '@/components/form-builder/FormHeaderSection'
-import { FormPreviewModal } from '@/components/form-builder/FormPreviewModal'
+import { FormBuilderOpnFormLayout } from '@/components/form-builder/FormBuilderOpnFormLayout'
+import { FormStructureSection } from '@/components/form-builder/FormStructureSection'
+import { TemplatesPanel } from '@/components/form-builder/TemplatesPanel'
+import { AIBuilderModal, type AIGeneratedForm } from '@/components/form-builder/AIBuilderModal'
 import { formsApi } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface FormField {
   label: string
@@ -34,128 +35,10 @@ interface FormField {
   scaleLabels?: { min: string; max: string }
 }
 
-const TEMPLATES: FormTemplate[] = [
-  {
-    name: 'Event feedback',
-    title: 'Event Feedback',
-    description: 'Help us improve future events. Your feedback is valuable.',
-    industry: 'Events',
-    fields: [
-      { label: 'How would you rate the event?', type: 'rating', maxRating: 5 },
-      { label: 'What did you enjoy most?', type: 'textarea' },
-      { label: 'What could we improve?', type: 'textarea' },
-      { label: 'Would you attend again?', type: 'select', options: ['Yes', 'No', 'Maybe'] },
-    ],
-  },
-  {
-    name: 'NPS',
-    title: 'Net Promoter Score',
-    description: 'How likely are you to recommend us to a friend or colleague?',
-    fields: [
-      { label: 'On a scale of 0–10, how likely are you to recommend us?', type: 'rating', maxRating: 10 },
-      { label: 'What is the main reason for your score?', type: 'textarea' },
-    ],
-  },
-  {
-    name: 'Contact',
-    title: 'Contact Us',
-    description: 'Send us a message and we\'ll get back to you.',
-    fields: [
-      { label: 'Your name', type: 'text' },
-      { label: 'Email', type: 'email' },
-      { label: 'Subject', type: 'select', options: ['General inquiry', 'Support', 'Feedback', 'Other'] },
-      { label: 'Message', type: 'textarea' },
-    ],
-  },
-  {
-    name: 'Patient satisfaction',
-    title: 'Patient Satisfaction Survey',
-    description: 'Your feedback helps us improve our healthcare services.',
-    industry: 'Healthcare',
-    fields: [
-      { label: 'How would you rate your overall experience?', type: 'rating', maxRating: 5 },
-      { label: 'How satisfied were you with the wait time?', type: 'rating', maxRating: 5 },
-      { label: 'How would you rate the staff professionalism?', type: 'rating', maxRating: 5 },
-      { label: 'Was your concern adequately addressed?', type: 'select', options: ['Yes', 'No', 'Partially'] },
-      { label: 'Additional comments or suggestions', type: 'textarea' },
-    ],
-  },
-  {
-    name: 'Appointment booking',
-    title: 'Appointment Request',
-    description: 'Request an appointment with our healthcare team.',
-    industry: 'Healthcare',
-    fields: [
-      { label: 'Full name', type: 'text' },
-      { label: 'Phone number', type: 'tel' },
-      { label: 'Email', type: 'email' },
-      { label: 'Preferred date', type: 'date' },
-      { label: 'Type of appointment', type: 'select', options: ['Consultation', 'Follow-up', 'Routine checkup', 'Emergency'] },
-      { label: 'Reason for visit', type: 'textarea' },
-    ],
-  },
-  {
-    name: 'Medical survey',
-    title: 'Patient Health Survey',
-    description: 'Help us understand your health needs better.',
-    industry: 'Healthcare',
-    fields: [
-      { label: 'Age range', type: 'select', options: ['Under 18', '18-30', '31-50', '51-70', 'Over 70'] },
-      { label: 'Do you have any chronic conditions?', type: 'checkbox', options: ['Diabetes', 'Hypertension', 'Asthma', 'Heart disease', 'None'] },
-      { label: 'Are you currently taking any medications?', type: 'select', options: ['Yes', 'No'] },
-      { label: 'Please list your medications (if applicable)', type: 'textarea' },
-      { label: 'Do you have any allergies?', type: 'textarea' },
-    ],
-  },
-  {
-    name: 'Event registration',
-    title: 'Event Registration',
-    description: 'Register for our upcoming event.',
-    industry: 'Events',
-    fields: [
-      { label: 'Full name', type: 'text' },
-      { label: 'Email', type: 'email' },
-      { label: 'Phone number', type: 'tel' },
-      { label: 'Organization', type: 'text' },
-      { label: 'Ticket type', type: 'select', options: ['General admission', 'VIP', 'Student', 'Group'] },
-      { label: 'Dietary requirements', type: 'checkbox', options: ['Vegetarian', 'Vegan', 'Gluten-free', 'None'] },
-      { label: 'How did you hear about this event?', type: 'select', options: ['Social media', 'Email', 'Friend', 'Website', 'Other'] },
-    ],
-  },
-  {
-    name: 'Post-event survey',
-    title: 'Post-Event Survey',
-    description: 'Thank you for attending! Please share your thoughts.',
-    industry: 'Events',
-    fields: [
-      { label: 'Overall event rating', type: 'rating', maxRating: 5 },
-      { label: 'How would you rate the venue?', type: 'rating', maxRating: 5 },
-      { label: 'How would you rate the content/speakers?', type: 'rating', maxRating: 5 },
-      { label: 'Was the event well-organized?', type: 'select', options: ['Excellent', 'Good', 'Average', 'Poor'] },
-      { label: 'What did you like most?', type: 'textarea' },
-      { label: 'What could be improved?', type: 'textarea' },
-      { label: 'Would you attend future events?', type: 'select', options: ['Definitely', 'Probably', 'Maybe', 'No'] },
-    ],
-  },
-  {
-    name: 'Vendor application',
-    title: 'Event Vendor Application',
-    description: 'Apply to be a vendor at our event.',
-    industry: 'Events',
-    fields: [
-      { label: 'Business name', type: 'text' },
-      { label: 'Contact person', type: 'text' },
-      { label: 'Email', type: 'email' },
-      { label: 'Phone', type: 'tel' },
-      { label: 'Type of products/services', type: 'textarea' },
-      { label: 'Booth size needed', type: 'select', options: ['Small (10x10)', 'Medium (10x20)', 'Large (20x20)'] },
-      { label: 'Have you been a vendor before?', type: 'select', options: ['Yes', 'No'] },
-    ],
-  },
-]
 
-export default function CreateFormPage() {
+function CreateFormPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [fields, setFields] = useState<FormField[]>([])
@@ -168,8 +51,12 @@ export default function CreateFormPage() {
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null)
   const [customization, setCustomization] = useState<FormCustomization>({})
   const [logoData, setLogoData] = useState<string | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
+  const [showAIModal, setShowAIModal] = useState(false)
   const [formLayout, setFormLayout] = useState<FormLayoutOption>('centered')
+
+  useEffect(() => {
+    if (searchParams.get('ai') === '1') setShowAIModal(true)
+  }, [searchParams])
 
   const headerConfig: FormHeaderConfig = {
     logoData: logoData ?? undefined,
@@ -178,10 +65,24 @@ export default function CreateFormPage() {
     headerBackgroundColor: customization.headerBackgroundColor,
   }
 
-  const applyTemplate = (t: (typeof TEMPLATES)[0]) => {
+  const applyTemplate = (t: (typeof FORM_TEMPLATES)[number]) => {
     setTitle(t.title)
     setDescription(t.description)
     setFields(t.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })))
+  }
+
+  const applyAIGenerated = (result: AIGeneratedForm) => {
+    setTitle(result.title)
+    setDescription(result.description)
+    setFields(
+      (result.fields || []).map((f) => ({
+        label: f.label,
+        type: f.type,
+        options: f.options ? [...f.options] : undefined,
+        maxRating: f.maxRating,
+      }))
+    )
+    setError('')
   }
 
   const onHeaderChange = (config: FormHeaderConfig) => {
@@ -324,309 +225,174 @@ export default function CreateFormPage() {
     }
   }
 
+  const saveForm = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    handleSubmit(e as unknown as FormEvent<HTMLFormElement>)
+  }
+
   return (
-    <div className="min-h-screen bg-bg-secondary flex flex-col">
-      {/* Top bar: title + Preview (view only) + Publish (save) */}
-      <header className="shrink-0 flex items-center justify-between gap-4 px-4 py-3 bg-white border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900">Create New Form</h1>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setShowPreview(true)}
-          >
-            Preview
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(e as unknown as FormEvent<HTMLFormElement>)
-            }}
-            isLoading={isSubmitting}
-          >
-            Publish
-          </Button>
-        </div>
-      </header>
+    <>
+      <AIBuilderModal
+        open={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        onApply={applyAIGenerated}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: fields, layout options, templates, form settings */}
-        <FormBuilderLeftSidebar
-          onAddField={handleAddFieldFromSidebar}
-          templates={TEMPLATES}
-          onApplyTemplate={applyTemplate}
-          formLayout={formLayout}
-          onFormLayoutChange={setFormLayout}
-          formSettings={{
-            thankYouMessage,
-            thankYouRedirectUrl,
-            closeDate,
-            responseLimit,
-            onThankYouMessageChange: setThankYouMessage,
-            onThankYouRedirectUrlChange: setThankYouRedirectUrl,
-            onCloseDateChange: setCloseDate,
-            onResponseLimitChange: setResponseLimit,
-          }}
-        />
-
-        {/* Main canvas: form content only */}
-        <main className="flex-1 overflow-y-auto py-6 px-6">
-          <form id="create-form" onSubmit={handleSubmit} className="max-w-3xl mx-auto">
+      <FormBuilderOpnFormLayout
+        backHref="/dashboard"
+        formTitle={title || 'Untitled form'}
+        onSave={() => saveForm()}
+        isSaving={isSubmitting}
+        informationSection={
+          <div className="space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error}
               </div>
             )}
-
-            <div className="space-y-4">
-              {fields.map((field, index) => {
-                const isLayoutBlock = ['paragraph', 'heading1', 'heading2', 'heading3', 'divider', 'title', 'label'].includes(field.type)
-                
-                return (
-                <div key={index} className="space-y-2">
-                  {index > 0 && (
-                    <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setInsertAtIndex(index)}
-                        className={cn(
-                          'flex items-center gap-2 py-2 px-4 text-sm text-gray-500 transition hover:text-primary',
-                          insertAtIndex === index && 'text-primary font-medium'
-                        )}
-                      >
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold shadow-sm">+</span>
-                        {insertAtIndex === index ? 'Click a field on the left to add here' : 'Add field here'}
-                      </button>
-                    </div>
-                  )}
-                  <div className="border border-border rounded-lg p-4 bg-bg-secondary">
-                  
-                  {/* Layout blocks have different UI - just show preview */}
-                  {isLayoutBlock ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-gray-500 uppercase">
-                          {field.type === 'divider' ? '⎯ Divider' :
-                           field.type === 'heading1' ? 'H1 Heading' :
-                           field.type === 'heading2' ? 'H2 Heading' :
-                           field.type === 'heading3' ? 'H3 Heading' :
-                           field.type === 'paragraph' ? '¶ Text Block' :
-                           field.type === 'title' ? '📌 Title' :
-                           field.type === 'label' ? '🏷 Label' : field.type}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => removeField(index)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                      
-                      {field.type === 'divider' ? (
-                        <div className="py-4">
-                          <hr className="border-t-2 border-gray-300" />
-                          <p className="text-xs text-gray-400 text-center mt-2">This will appear as a divider line</p>
-                        </div>
-                      ) : (
-                        <>
-                          <label className="block text-xs font-medium text-gray-700 mb-2">
-                            {field.type === 'paragraph' ? 'Text content' : 
-                             field.type === 'title' ? 'Section title' :
-                             field.type === 'label' ? 'Label text' : 'Heading text'}
-                          </label>
-                          <textarea
-                            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                            rows={field.type === 'paragraph' ? 3 : 1}
-                            value={field.label}
-                            onChange={(e) => updateField(index, { label: e.target.value })}
-                            placeholder={
-                              field.type === 'paragraph' ? 'Enter descriptive text or instructions...' :
-                              field.type === 'heading1' ? 'Major Section' :
-                              field.type === 'heading2' ? 'Subsection' :
-                              field.type === 'heading3' ? 'Minor Heading' :
-                              field.type === 'title' ? 'Section Title' :
-                              'Label Text'
-                            }
-                          />
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                  <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <Input
-                      label="Field Label"
-                      value={field.label}
-                      onChange={(e) => updateField(index, { label: e.target.value })}
-                      required
-                      placeholder="e.g., Your Name"
-                    />
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-text-primary mb-1.5">
-                        Field Type
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={field.type}
-                        onChange={(e) => updateField(index, { type: e.target.value })}
-                      >
-                        <optgroup label="Questions">
-                          <option value="text">Short answer</option>
-                          <option value="textarea">Long answer</option>
-                          <option value="multiple">Multiple choice</option>
-                          <option value="checkbox">Checkboxes</option>
-                          <option value="select">Dropdown</option>
-                          <option value="number">Number</option>
-                          <option value="email">Email</option>
-                          <option value="tel">Phone number</option>
-                          <option value="link">Link</option>
-                          <option value="date">Date</option>
-                          <option value="time">Time</option>
-                          <option value="linearScale">Linear scale</option>
-                          <option value="rating">Rating</option>
-                        </optgroup>
-                        <optgroup label="Layout">
-                          <option value="paragraph">Text</option>
-                          <option value="heading1">Heading 1</option>
-                          <option value="heading2">Heading 2</option>
-                          <option value="heading3">Heading 3</option>
-                          <option value="divider">Divider</option>
-                          <option value="title">Title</option>
-                          <option value="label">Label</option>
-                        </optgroup>
-                      </select>
-                    </div>
-                  </div>
-
-                  {(field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && !['paragraph', 'heading1', 'heading2', 'heading3', 'divider', 'title', 'label'].includes(field.type) && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-text-primary mb-2">
-                        Options
-                      </label>
-                      <div className="space-y-2">
-                        {field.options?.map((option, optIdx) => (
-                          <div key={optIdx} className="flex gap-2">
-                            <Input
-                              value={option}
-                              onChange={(e) => updateOption(index, optIdx, e.target.value)}
-                              placeholder={`Option ${optIdx + 1}`}
-                            />
-                            <Button
-                              type="button"
-                              variant="danger"
-                              size="sm"
-                              onClick={() => removeOption(index, optIdx)}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addOption(index)}
-                        >
-                          + Add Option
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {(field.type === 'rating' || field.type === 'linearScale') && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">
-                          {field.type === 'rating' ? 'Max Rating (Stars)' : 'Max Scale (1 to X)'}
-                        </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={field.maxRating || 5}
-                          onChange={(e) => updateField(index, { maxRating: parseInt(e.target.value) || 5 })}
-                        />
-                      </div>
-                      
-                      {field.type === 'linearScale' && (
-                        <div>
-                          <label className="block text-sm font-medium text-text-primary mb-2">
-                            Scale Labels (optional)
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              placeholder="Min label (e.g., Not at all)"
-                              value={field.scaleLabels?.min || ''}
-                              onChange={(e) => updateField(index, { 
-                                scaleLabels: { min: e.target.value, max: field.scaleLabels?.max || '' }
-                              })}
-                            />
-                            <Input
-                              placeholder="Max label (e.g., Extremely)"
-                              value={field.scaleLabels?.max || ''}
-                              onChange={(e) => updateField(index, { 
-                                scaleLabels: { min: field.scaleLabels?.min || '', max: e.target.value }
-                              })}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    onClick={() => removeField(index)}
-                  >
-                    Remove Field
-                  </Button>
-                  </>
-                  )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Form Title *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Customer Feedback"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis enim velit mollit."
+                rows={3}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+              <input
+                type="text"
+                placeholder="Add tags"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-500">To organize your forms (hidden to respondents).</p>
+            </div>
+            <div className="border-t border-slate-200 pt-3">
+              <p className="mb-2 text-xs font-medium text-slate-500">Form settings</p>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-slate-600">Thank-you message</label>
+                  <textarea
+                    value={thankYouMessage}
+                    onChange={(e) => setThankYouMessage(e.target.value)}
+                    placeholder="Thanks for your feedback!"
+                    rows={2}
+                    className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600">Redirect URL (optional)</label>
+                  <input
+                    type="url"
+                    value={thankYouRedirectUrl}
+                    onChange={(e) => setThankYouRedirectUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600">Close date (optional)</label>
+                  <input
+                    type="datetime-local"
+                    value={closeDate}
+                    onChange={(e) => setCloseDate(e.target.value)}
+                    className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600">Response limit (optional)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={responseLimit === '' ? '' : responseLimit}
+                    onChange={(e) => setResponseLimit(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    placeholder="e.g. 100"
+                    className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                  />
                 </div>
               </div>
-            );
-          })}
             </div>
-
-            {fields.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-200 py-16">
-                <p className="text-sm text-gray-500">No fields yet. Add fields from the left sidebar.</p>
-                <p className="text-xs text-gray-400">Choose Input, Choice, Rating, or Layout and click to add.</p>
-              </div>
-            )}
-        </form>
-        </main>
-
-        {/* Right sidebar: Header + Rest of form customization */}
-        <FormBuilderRightSidebar
-          headerConfig={headerConfig}
-          customization={customization}
-          onHeaderChange={onHeaderChange}
-          onCustomizationChange={setCustomization}
-        />
-      </div>
-
-      <FormPreviewModal
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        title={title}
-        description={description}
-        fields={fields}
-        logoData={logoData ?? undefined}
-        customization={customization}
-        formLayout={formLayout}
+          </div>
+        }
+        formStructureSection={
+          <FormStructureSection
+            fields={fields}
+            onAddField={handleAddFieldFromSidebar}
+            updateField={updateField}
+            removeField={removeField}
+            addOption={addOption}
+            updateOption={updateOption}
+            removeOption={removeOption}
+            onReorder={setFields}
+          />
+        }
+        templatesSection={
+          <TemplatesPanel templates={FORM_TEMPLATES} onSelect={applyTemplate} />
+        }
+        customizationSection={
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Form layout</label>
+              <select
+                value={formLayout}
+                onChange={(e) => setFormLayout(e.target.value as FormLayoutOption)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="centered">Centered card</option>
+                <option value="fullWidth">Full width</option>
+              </select>
+            </div>
+            <FormBuilderRightSidebar
+              headerConfig={headerConfig}
+              customization={customization}
+              onHeaderChange={onHeaderChange}
+              onCustomizationChange={setCustomization}
+              dashboardHref=""
+              inline
+              initialTab="customize"
+            />
+          </div>
+        }
+        preview={{
+          title,
+          description,
+          fields,
+          logoData: logoData ?? undefined,
+          customization,
+          formLayout,
+          submitLabel: 'Submit Feedback',
+        }}
+        topBarExtra={
+          <Button type="button" variant="secondary" size="sm" onClick={() => setShowAIModal(true)}>
+            ✨ Create with AI
+          </Button>
+        }
       />
-    </div>
+    </>
+  );
+}
+
+export default function CreateFormPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-bg-secondary">
+        <LoadingSpinner size="lg" />
+      </div>
+    }>
+      <CreateFormPageInner />
+    </Suspense>
   );
 }
 
