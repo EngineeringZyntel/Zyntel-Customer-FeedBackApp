@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formsApi, responsesApi, analyticsApi, qrCodeApi } from '@/lib/api'
+import { getCurrentUser } from '@/lib/jwt'
 import { formatDate } from '@/lib/utils'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -36,10 +37,14 @@ export default function FormDetailsPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      
-      // Load form (we'll need to get it from the list or create a new endpoint)
-      // For now, we'll get all forms and find the one we need
-      const formsResponse = await formsApi.getByUser(1) as { forms: any[] } // Will be fixed with auth
+
+      const currentUser = getCurrentUser()
+      if (!currentUser) {
+        router.push('/')
+        return
+      }
+
+      const formsResponse = await formsApi.getByUser(currentUser.userId) as { forms: any[] }
       const foundForm = formsResponse.forms.find((f: any) => f.id === formId)
       
       if (!foundForm) {
@@ -201,6 +206,11 @@ export default function FormDetailsPage() {
                 <p className="text-text-secondary mb-4">{form.description}</p>
               )}
               <div className="flex flex-wrap gap-2">
+                <Link href={`/dashboard/forms/${form.id}/edit`}>
+                  <Button variant="primary" size="sm">
+                    Edit Form
+                  </Button>
+                </Link>
                 <Button variant="secondary" size="sm" onClick={copyLink}>
                   Copy Link
                 </Button>

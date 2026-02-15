@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const description = raw.description ?? null
     const fields = raw.fields
     const logoData = raw.logoData ?? null
+    const customization = raw.customization ?? null
     const thankYouMessage = raw.thankYouMessage?.trim() || null
     const thankYouRedirectUrl = raw.thankYouRedirectUrl?.trim() || null
     const closeDate = raw.closeDate ? new Date(raw.closeDate) : null
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
         formCode,
         fields: fields as any,
         logoData,
+        customization: customization as any,
         thankYouMessage,
         thankYouRedirectUrl,
         closeDate,

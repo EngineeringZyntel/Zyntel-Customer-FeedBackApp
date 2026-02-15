@@ -11,11 +11,13 @@ interface CardProps {
   children: ReactNode
   className?: string
   hover?: boolean
+  style?: React.CSSProperties
 }
 
-export function Card({ children, className, hover = false }: CardProps) {
+export function Card({ children, className, hover = false, style }: CardProps) {
   return (
     <div
+      style={style}
       className={cn(
         'bg-bg-primary rounded-xl border border-border p-6',
         'shadow-sm',

@@ -25,6 +25,7 @@ export async function GET(
         description: true,
         fields: true,
         logoData: true,
+        customization: true,
         thankYouMessage: true,
         thankYouRedirectUrl: true,
         closeDate: true,

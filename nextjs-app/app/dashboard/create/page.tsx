@@ -11,6 +11,10 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
+import { InsertBlockModal, type BlockType } from '@/components/form-builder/InsertBlockModal'
+import { LayoutToolbar, type LayoutBlock } from '@/components/form-builder/LayoutToolbar'
+import { FormCustomizationSidebar, type FormCustomization } from '@/components/form-builder/FormCustomizationSidebar'
+import type { FormHeaderConfig } from '@/components/form-builder/FormHeaderSection'
 import { formsApi } from '@/lib/api'
 
 interface FormField {
@@ -151,6 +155,17 @@ export default function CreateFormPage() {
   const [responseLimit, setResponseLimit] = useState<number | ''>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [showInsertModal, setShowInsertModal] = useState(false)
+  const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null)
+  const [customization, setCustomization] = useState<FormCustomization>({})
+  const [logoData, setLogoData] = useState<string | null>(null)
+
+  const headerConfig: FormHeaderConfig = {
+    logoData: logoData ?? undefined,
+    headerTitle: title,
+    headerSubtext: description ?? undefined,
+    headerBackgroundColor: customization.headerBackgroundColor,
+  }
 
   const applyTemplate = (t: (typeof TEMPLATES)[0]) => {
     setTitle(t.title)
@@ -158,8 +173,53 @@ export default function CreateFormPage() {
     setFields(t.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })))
   }
 
+  const onHeaderChange = (config: FormHeaderConfig) => {
+    setTitle(config.headerTitle)
+    setDescription(config.headerSubtext ?? '')
+    setLogoData(config.logoData ?? null)
+    if (config.headerBackgroundColor !== undefined) {
+      setCustomization((c) => ({ ...c, headerBackgroundColor: config.headerBackgroundColor }))
+    }
+  }
+
+  const insertLayoutBlock = (block: LayoutBlock, atIndex?: number) => {
+    const idx = atIndex ?? insertAtIndex ?? fields.length
+    const next = [...fields]
+    next.splice(idx, 0, { label: block.label, type: block.type } as FormField)
+    setFields(next)
+    setInsertAtIndex(null)
+  }
+
   const addField = () => {
     setFields([...fields, { label: '', type: 'text' }])
+  }
+
+  const insertBlockAt = (block: BlockType, atIndex?: number) => {
+    const defaults: Record<string, FormField> = {
+      text: { label: '', type: 'text' },
+      textarea: { label: '', type: 'textarea' },
+      email: { label: 'Email', type: 'email' },
+      number: { label: '', type: 'number' },
+      tel: { label: 'Phone number', type: 'tel' },
+      date: { label: 'Date', type: 'date' },
+      time: { label: 'Time', type: 'time' },
+      link: { label: 'Website URL', type: 'link' },
+      select: { label: '', type: 'select', options: ['', ''] },
+      multiple: { label: '', type: 'multiple', options: ['', '', ''] },
+      checkbox: { label: '', type: 'checkbox', options: ['', ''] },
+      rating: { label: '', type: 'rating', maxRating: 5 },
+      linearScale: { label: '', type: 'linearScale', maxRating: 5 },
+    }
+    const def = defaults[block.type] ?? { label: '', type: 'text' }
+    const idx = atIndex ?? fields.length
+    const next = [...fields]
+    next.splice(idx, 0, { ...def })
+    setFields(next)
+  }
+
+  const insertBlock = (block: BlockType) => {
+    insertBlockAt(block, insertAtIndex ?? undefined)
+    setInsertAtIndex(null)
   }
 
   const updateField = (index: number, updates: Partial<FormField>) => {
@@ -206,19 +266,23 @@ export default function CreateFormPage() {
       return
     }
 
-    if (fields.length === 0) {
-      setError('Add at least one field')
+
+    const displayOnlyTypes = ['paragraph', 'heading1', 'heading2', 'heading3', 'divider', 'title', 'label']
+    const inputFieldTypes = fields.filter((f) => !displayOnlyTypes.includes(f.type))
+
+    if (inputFieldTypes.length === 0) {
+      setError('Add at least one input field (not just layout blocks)')
       return
     }
 
-    // Validate fields
     for (const field of fields) {
-      if (!field.label.trim()) {
-        setError('All fields must have a label')
+      if (displayOnlyTypes.includes(field.type)) continue
+      if (!field.label?.trim()) {
+        setError(`Field at position ${fields.indexOf(field) + 1} must have a label`)
         return
       }
-      if ((field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && (!field.options || field.options.length === 0)) {
-        setError(`${field.label} must have at least one option`)
+      if ((field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && (!field.options || field.options.filter((o) => o?.trim()).length === 0)) {
+        setError(`"${field.label}" must have at least one option`)
         return
       }
     }
@@ -229,11 +293,13 @@ export default function CreateFormPage() {
       const response = await formsApi.create({
         title,
         description,
-        fields: fields.map(f => ({
-          label: f.label,
+        logoData: logoData ?? undefined,
+        customization: Object.keys(customization).length ? customization : undefined,
+        fields: fields.map((f) => ({
+          label: f.label || '',
           type: f.type,
-          options: f.options?.filter(opt => opt.trim()),
-          maxRating: f.maxRating || 5,
+          options: f.options?.filter((opt) => opt?.trim()),
+          maxRating: f.maxRating ?? (f.type === 'linearScale' ? 5 : 5),
         })),
         thankYouMessage: thankYouMessage.trim() || undefined,
         thankYouRedirectUrl: thankYouRedirectUrl.trim() || undefined,
@@ -250,9 +316,10 @@ export default function CreateFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-secondary py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Create New Form</h1>
+    <div className="min-h-screen bg-bg-secondary">
+      <div className="flex">
+        <main className="min-h-screen flex-1 overflow-auto py-8 px-6">
+          <h1 className="text-3xl font-bold mb-6">Create New Form</h1>
 
         <Card className="mb-6">
           <h2 className="text-xl font-semibold mb-2">Start from a template</h2>
@@ -314,7 +381,7 @@ export default function CreateFormPage() {
 
         <form onSubmit={handleSubmit}>
           <Card className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">Form Details</h2>
+            <h2 className="text-xl font-semibold mb-4">Form settings</h2>
             
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -322,28 +389,11 @@ export default function CreateFormPage() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <Input
-                label="Form Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                placeholder="e.g., Customer Feedback Form"
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">
-                  Description (optional)
-                </label>
-                <textarea
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what this form is for..."
-                />
-              </div>
+            <p className="text-sm text-text-secondary mb-4">
+              Header (logo, title, subtext) and styling are in the sidebar →
+            </p>
 
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">
                   Thank-you message (optional)
@@ -395,16 +445,39 @@ export default function CreateFormPage() {
           </Card>
 
           <Card className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Form Fields</h2>
-              <Button type="button" variant="secondary" onClick={addField}>
-                + Add Field
-              </Button>
+            <div className="mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                <h2 className="text-xl font-semibold">Form content</h2>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => { setInsertAtIndex(null); setShowInsertModal(true) }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold">+</span>
+                  Add question
+                </Button>
+              </div>
+              <LayoutToolbar onInsert={(b) => insertLayoutBlock(b, insertAtIndex ?? undefined)} />
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {fields.map((field, index) => (
-                <div key={index} className="border border-border rounded-lg p-4 bg-bg-secondary">
+                <div key={index} className="space-y-2">
+                  {index > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-2">
+                      <button
+                        type="button"
+                        onClick={() => { setInsertAtIndex(index); setShowInsertModal(true) }}
+                        className="flex flex-1 items-center justify-center gap-2 py-2 text-sm text-gray-500 transition hover:text-primary"
+                      >
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold shadow-sm">+</span>
+                        Add question
+                      </button>
+                      <LayoutToolbar onInsert={(b) => insertLayoutBlock(b, index)} className="flex-1" />
+                    </div>
+                  )}
+                  <div className="border border-border rounded-lg p-4 bg-bg-secondary">
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <Input
                       label="Field Label"
@@ -423,21 +496,35 @@ export default function CreateFormPage() {
                         value={field.type}
                         onChange={(e) => updateField(index, { type: e.target.value })}
                       >
-                        <option value="text">Text</option>
-                        <option value="email">Email</option>
-                        <option value="number">Number</option>
-                        <option value="tel">Phone</option>
-                        <option value="date">Date</option>
-                        <option value="textarea">Textarea</option>
-                        <option value="select">Dropdown</option>
-                        <option value="multiple">Multiple Choice</option>
-                        <option value="checkbox">Checkbox</option>
-                        <option value="rating">Rating</option>
+                        <optgroup label="Questions">
+                          <option value="text">Short answer</option>
+                          <option value="textarea">Long answer</option>
+                          <option value="multiple">Multiple choice</option>
+                          <option value="checkbox">Checkboxes</option>
+                          <option value="select">Dropdown</option>
+                          <option value="number">Number</option>
+                          <option value="email">Email</option>
+                          <option value="tel">Phone number</option>
+                          <option value="link">Link</option>
+                          <option value="date">Date</option>
+                          <option value="time">Time</option>
+                          <option value="linearScale">Linear scale</option>
+                          <option value="rating">Rating</option>
+                        </optgroup>
+                        <optgroup label="Layout">
+                          <option value="paragraph">Text</option>
+                          <option value="heading1">Heading 1</option>
+                          <option value="heading2">Heading 2</option>
+                          <option value="heading3">Heading 3</option>
+                          <option value="divider">Divider</option>
+                          <option value="title">Title</option>
+                          <option value="label">Label</option>
+                        </optgroup>
                       </select>
                     </div>
                   </div>
 
-                  {(field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && (
+                  {(field.type === 'select' || field.type === 'multiple' || field.type === 'checkbox') && !['paragraph', 'heading1', 'heading2', 'heading3', 'divider', 'title', 'label'].includes(field.type) && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-text-primary mb-2">
                         Options
@@ -472,7 +559,7 @@ export default function CreateFormPage() {
                     </div>
                   )}
 
-                  {field.type === 'rating' && (
+                  {(field.type === 'rating' || field.type === 'linearScale') && (
                     <div>
                       <label className="block text-sm font-medium text-text-primary mb-1.5">
                         Max Rating
@@ -496,33 +583,51 @@ export default function CreateFormPage() {
                     Remove Field
                   </Button>
                 </div>
+                </div>
               ))}
             </div>
 
             {fields.length === 0 && (
-              <div className="text-center py-8 text-text-secondary">
-                No fields yet. Click "Add Field" to get started.
+              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-200 py-12">
+                <LayoutToolbar onInsert={(b) => insertLayoutBlock(b)} />
+                <button
+                  type="button"
+                  onClick={() => { setInsertAtIndex(null); setShowInsertModal(true) }}
+                  className="flex flex-col items-center gap-2 text-gray-500 transition hover:text-primary"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">+</span>
+                  <span className="font-medium">Add first question</span>
+                </button>
               </div>
             )}
           </Card>
 
+          <InsertBlockModal
+            isOpen={showInsertModal}
+            onClose={() => {
+              setShowInsertModal(false)
+              setInsertAtIndex(null)
+            }}
+            onInsert={insertBlock}
+          />
+
           <div className="flex gap-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => router.back()}
-            >
+            <Button type="button" variant="ghost" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={isSubmitting}
-            >
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
               Create Form
             </Button>
           </div>
         </form>
+        </main>
+
+        <FormCustomizationSidebar
+          headerConfig={headerConfig}
+          customization={customization}
+          onHeaderChange={onHeaderChange}
+          onCustomizationChange={setCustomization}
+        />
       </div>
     </div>
   )

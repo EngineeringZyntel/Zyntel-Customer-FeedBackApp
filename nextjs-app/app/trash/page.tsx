@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { trashApi } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/jwt'
 
 export default function TrashPage() {
   const router = useRouter()

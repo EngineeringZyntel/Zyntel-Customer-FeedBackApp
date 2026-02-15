@@ -96,7 +96,18 @@ export const formsApi = {
   getByCode: async (formCode: string) => {
     return apiRequest(`/forms/${formCode}`)
   },
-  
+
+  getById: async (formId: number) => {
+    return apiRequest(`/forms/id/${formId}`)
+  },
+
+  update: async (formId: number, formData: any) => {
+    return apiRequest(`/forms/id/${formId}`, {
+      method: 'PUT',
+      body: JSON.stringify(formData),
+    })
+  },
+
   delete: async (formId: number) => {
     return apiRequest(`/forms/delete/${formId}`, {
       method: 'DELETE',
