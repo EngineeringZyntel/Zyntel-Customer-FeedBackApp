@@ -21,6 +21,7 @@ interface FormField {
   type: string
   options?: string[]
   maxRating?: number
+  scaleLabels?: { min: string; max: string }
 }
 
 export default function PublicFormPage() {
@@ -207,45 +208,47 @@ export default function PublicFormPage() {
 
               if (field.type === 'paragraph') {
                 return (
-                  <p key={index} className="text-text-secondary">
-                    {field.label || 'Your text here'}
-                  </p>
+                  <div key={index} className="my-4 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-200">
+                    <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+                      {field.label || 'Enter your informational text here...'}
+                    </p>
+                  </div>
                 )
               }
               if (field.type === 'heading1') {
                 return (
-                  <h2 key={index} className="text-2xl font-bold text-text-primary">
-                    {field.label || 'Heading 1'}
+                  <h2 key={index} className="text-2xl font-bold text-text-primary mt-8 mb-4 border-b-2 border-gray-100 pb-2 first:mt-0">
+                    {field.label || 'Major Section'}
                   </h2>
                 )
               }
               if (field.type === 'heading2') {
                 return (
-                  <h3 key={index} className="text-xl font-semibold text-text-primary">
-                    {field.label || 'Heading 2'}
+                  <h3 key={index} className="text-xl font-semibold text-text-primary mt-6 mb-3">
+                    {field.label || 'Subsection'}
                   </h3>
                 )
               }
               if (field.type === 'heading3') {
                 return (
-                  <h4 key={index} className="text-lg font-medium text-text-primary">
-                    {field.label || 'Heading 3'}
+                  <h4 key={index} className="text-lg font-medium text-text-primary mt-4 mb-2">
+                    {field.label || 'Minor Heading'}
                   </h4>
                 )
               }
               if (field.type === 'divider') {
-                return <hr key={index} className="border-border my-4" />
+                return <hr key={index} className="border-t-2 border-gray-200 my-6" />
               }
               if (field.type === 'title') {
                 return (
-                  <p key={index} className="text-base font-semibold text-text-primary">
-                    {field.label || 'Title'}
-                  </p>
+                  <h4 key={index} className="text-lg font-bold text-text-primary mt-6 mb-3">
+                    {field.label || 'Section Title'}
+                  </h4>
                 )
               }
               if (field.type === 'label') {
                 return (
-                  <p key={index} className="text-sm font-medium text-text-secondary">
+                  <p key={index} className="text-xs uppercase tracking-wide font-semibold text-gray-500 mb-2">
                     {field.label || 'Label'}
                   </p>
                 )
@@ -350,23 +353,31 @@ export default function PublicFormPage() {
                 )}
 
                 {field.type === 'linearScale' && (
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: (field.maxRating || 5) }, (_, i) => i + 1).map((num) => (
-                      <label key={num} className="flex cursor-pointer">
-                        <input
-                          type="radio"
-                          name={field.label}
-                          value={num}
-                          required
-                          className="sr-only peer"
-                          onChange={() => handleFieldChange(field.label, num.toString())}
-                          checked={responses[field.label] === num.toString()}
-                        />
-                        <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-700 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
-                          {num}
-                        </span>
-                      </label>
-                    ))}
+                  <div>
+                    {field.scaleLabels && (field.scaleLabels.min || field.scaleLabels.max) && (
+                      <div className="flex justify-between text-xs text-gray-500 mb-2">
+                        <span>{field.scaleLabels.min || '1'}</span>
+                        <span>{field.scaleLabels.max || (field.maxRating || 5).toString()}</span>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from({ length: (field.maxRating || 5) }, (_, i) => i + 1).map((num) => (
+                        <label key={num} className="flex cursor-pointer">
+                          <input
+                            type="radio"
+                            name={field.label}
+                            value={num}
+                            required
+                            className="sr-only peer"
+                            onChange={() => handleFieldChange(field.label, num.toString())}
+                            checked={responses[field.label] === num.toString()}
+                          />
+                          <span className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-700 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white">
+                            {num}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
 

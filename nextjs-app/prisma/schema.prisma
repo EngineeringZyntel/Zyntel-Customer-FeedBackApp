@@ -26,14 +26,33 @@ model User {
 model UserSettings {
   id                      Int      @id @default(autoincrement())
   userId                  Int      @unique @map("user_id")
+  
+  // Global preferences
+  theme                   String   @default("light") @db.VarChar(20) // "light" | "dark" | "auto"
+  timezone                String   @default("UTC") @db.VarChar(100)
+  defaultFormTemplate     String?  @map("default_form_template") @db.VarChar(100)
+  
+  // Notification preferences
   emailNotifications      Boolean  @default(true) @map("email_notifications")
   notificationEmail       String?  @map("notification_email") @db.VarChar(255)
+  notifyOnResponse        Boolean  @default(true) @map("notify_on_response")
+  notifyDaily             Boolean  @default(false) @map("notify_daily")
+  notifyWeekly            Boolean  @default(true) @map("notify_weekly")
+  
+  // Branding defaults
   defaultBrandingColors   Json?    @map("default_branding_colors")
   defaultLogo             String?  @map("default_logo") @db.Text
+  defaultPrimaryColor     String   @default("#0066FF") @map("default_primary_color") @db.VarChar(20)
+  defaultFontFamily       String?  @map("default_font_family") @db.VarChar(100)
+  
+  // SMTP settings
   smtpHost                String?  @map("smtp_host") @db.VarChar(255)
   smtpPort                Int?     @map("smtp_port")
   smtpUser                String?  @map("smtp_user") @db.VarChar(255)
   smtpPassword            String?  @map("smtp_password") @db.VarChar(255)
+  
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
   user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("user_settings")
@@ -52,20 +71,40 @@ model Form {
   closeDate           DateTime?      @map("close_date") @db.Timestamptz(6)
   responseLimit       Int?           @map("response_limit")
   customization       Json?          // colors, fonts, shape, etc.
-  customDomain        String?        @map("custom_domain") @db.VarChar(255)
+  
+  // Custom domain
+  customDomain        String?        @unique @map("custom_domain") @db.VarChar(255)
+  domainVerified      Boolean        @default(false) @map("domain_verified")
+  domainDnsRecord     String?        @map("domain_dns_record") @db.VarChar(255)
+  
+  // Email notifications
   emailNotifications  Boolean        @default(false) @map("email_notifications")
   notificationEmails  String?        @map("notification_emails") @db.Text // comma-separated
+  
+  // Form settings
+  requirePassword     Boolean        @default(false) @map("require_password")
+  password            String?        @db.VarChar(255) // Hashed password
+  allowAnonymous      Boolean        @default(true) @map("allow_anonymous")
+  maxResponsesPerIP   Int?           @map("max_responses_per_ip")
+  cooldownMinutes     Int?           @map("cooldown_minutes")
+  webhookUrl          String?        @map("webhook_url") @db.VarChar(500)
+  slackWebhook        String?        @map("slack_webhook") @db.VarChar(500)
+  
+  // Lifecycle
   isDeleted           Boolean        @default(false) @map("is_deleted")
   deletedAt           DateTime?      @map("deleted_at") @db.Timestamptz(6)
   version             Int            @default(1)
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
+  
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   responses           Response[]
   versions            FormVersion[]
 
   @@map("forms")
   @@index([userId, isDeleted])
+  @@index([formCode])
+  @@index([customDomain])
 }
 
 model FormVersion {
@@ -87,11 +126,14 @@ model Response {
   id          Int      @id @default(autoincrement())
   formId      Int      @map("form_id")
   responseData Json    @map("response_data") // JSONB in PostgreSQL
+  ipAddress   String?  @map("ip_address") @db.VarChar(45) // IPv4 or IPv6
+  userAgent   String?  @map("user_agent") @db.Text
   submittedAt DateTime @default(now()) @map("submitted_at")
   form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   
   @@map("responses")
   @@index([formId])
-  @@index([submittedAt])
+  @@index([formId, submittedAt])
+  @@index([formId, ipAddress])
 }
 

@@ -7,7 +7,13 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret || secret === 'your-secret-key-change-in-production') {
+    throw new Error('JWT_SECRET must be set to a strong random value (e.g. openssl rand -base64 32)')
+  }
+  return secret
+}
 
 export interface TokenPayload {
   userId: number
@@ -32,7 +38,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  * Generate JWT token for authenticated user
  */
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
 /**
@@ -40,7 +46,7 @@ export function generateToken(payload: TokenPayload): string {
  */
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload
+    return jwt.verify(token, getJwtSecret()) as TokenPayload
   } catch (error) {
     return null
   }
