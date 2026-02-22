@@ -1,243 +1,193 @@
-# FormFlow - Feedback Form Builder
+# FormFlow - Next.js Version
 
-A beautiful, lightweight feedback form builder similar to Tally.so. Built with vanilla HTML/CSS/JS frontend and Flask backend.
+A modern, professional feedback form builder built with Next.js 14, TypeScript, and Tailwind CSS.
 
-## Features (MVP)
+## 🚀 Features
 
-- ✅ User authentication (register/login)
-- ✅ Create custom forms with multiple field types
-- ✅ Share forms via unique links
-- ✅ Real-time form submissions
-- ✅ Email notifications on new responses
-- ✅ Dashboard with response statistics
-- ✅ Visual charts for response analytics
-- ✅ QR code generation with logo support
-- ✅ Clean, modern UI with distinctive design
+- **Modern Stack**: Next.js 14 with App Router, TypeScript, Tailwind CSS
+- **Type-Safe**: Full TypeScript support with Prisma ORM
+- **Professional UI**: Beautiful, responsive design with Tailwind CSS
+- **Admin Panel**: Comprehensive analytics dashboard with charts and insights
+- **Real-time Analytics**: Track responses, trends, and field-level analytics
+- **Multiple Field Types**: Text, email, number, date, textarea, dropdown, multiple choice, checkbox, rating
+- **QR Code Generation**: Generate QR codes for easy form sharing
+- **Secure Authentication**: JWT-based authentication with bcrypt password hashing
 
-## Tech Stack
+## 📋 Prerequisites
 
-**Frontend:**
-- Vanilla HTML5
-- CSS3 (with custom design system)
-- Vanilla JavaScript (ES6+)
+- Node.js 18+ 
+- PostgreSQL database (Neon recommended)
+- npm or yarn
 
-**Backend:**
-- Flask (Python)
-- PostgreSQL (via Neon)
-- psycopg2 for database
-- QRCode library
-- Pillow for image processing
+## 🛠️ Setup
 
-**Deployment:**
-- Render (backend + frontend)
-- Neon (PostgreSQL database)
+### 1. Install Dependencies
 
-## Project Structure
-
-```
-feedback-app/
-├── backend/
-│   ├── app.py              # Flask application
-│   └── requirements.txt    # Python dependencies
-├── frontend/
-│   ├── index.html         # Main HTML file
-│   ├── styles.css         # Styling
-│   └── app.js             # JavaScript logic
-├── render.yaml            # Render deployment config
-├── .gitignore
-└── README.md
-```
-
-## Local Development Setup
-
-### Prerequisites
-- Python 3.9+
-- PostgreSQL (or Neon database)
-- Git
-
-### Backend Setup
-
-1. Navigate to backend directory:
 ```bash
-cd backend
+cd nextjs-app
+npm install
 ```
 
-2. Create virtual environment:
+### 2. Configure Environment Variables
+
+Copy `.env.example` to `.env` and fill in your values:
+
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+cp .env.example .env
 ```
 
-3. Install dependencies:
+Required variables:
+- `DATABASE_URL`: Your PostgreSQL connection string (from Neon)
+- `JWT_SECRET`: A secret key for JWT tokens (generate a random string)
+- `NEXT_PUBLIC_BASE_URL`: Your app's base URL (e.g., `http://localhost:3000`)
+
+### 3. Set Up Database
+
 ```bash
-pip install -r requirements.txt
+# Generate Prisma Client
+npm run db:generate
+
+# Push schema to database (creates tables)
+npm run db:push
 ```
 
-4. Set environment variables:
+### 4. Run Development Server
+
 ```bash
-export DATABASE_URL="postgresql://user:password@host:port/database"
-export SMTP_USER="your-email@gmail.com"
-export SMTP_PASSWORD="your-app-password"
+npm run dev
 ```
 
-5. Run the backend:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 📁 Project Structure
+
+```
+nextjs-app/
+├── app/                    # Next.js App Router pages
+│   ├── api/               # API routes
+│   │   ├── auth/         # Authentication endpoints
+│   │   ├── forms/        # Form CRUD endpoints
+│   │   ├── responses/    # Response endpoints
+│   │   └── analytics/    # Analytics endpoints
+│   ├── admin/            # Admin panel page
+│   ├── dashboard/        # Dashboard pages
+│   ├── form/             # Public form pages
+│   └── page.tsx          # Landing page
+├── components/           # React components
+│   └── ui/              # Reusable UI components
+├── lib/                  # Utilities and helpers
+│   ├── api.ts           # API client
+│   ├── auth.ts          # Authentication utilities
+│   ├── db.ts            # Database connection
+│   └── utils.ts         # Helper functions
+├── prisma/              # Prisma schema
+│   └── schema.prisma    # Database schema
+└── public/              # Static assets
+```
+
+## 🔐 Authentication
+
+The app uses JWT tokens stored in localStorage. After login/register, the token is automatically included in API requests.
+
+## 📊 Admin Panel
+
+Access the admin panel at `/admin` to view:
+- Overall statistics (total forms, responses, trends)
+- Form-level analytics
+- Response trends (last 30 days)
+- Field-level insights (ratings, multiple choice distributions)
+- Visual charts using Recharts
+
+## 🚢 Deployment
+
+### Deploy to Render
+
+1. **Update `render.yaml`** in the root directory to include the Next.js service:
+
+```yaml
+services:
+  - type: web
+    name: formflow-nextjs
+    rootDir: nextjs-app
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_BASE_URL
+        value: https://your-app.onrender.com
+```
+
+2. **Set Environment Variables** in Render dashboard:
+   - `DATABASE_URL`: Your Neon PostgreSQL URL
+   - `JWT_SECRET`: A secure random string
+   - `NEXT_PUBLIC_BASE_URL`: Your Render app URL
+
+3. **Push to GitHub** - Render will auto-deploy
+
+### Build for Production
+
 ```bash
-python app.py
+npm run build
+npm start
 ```
 
-Backend will run on `http://localhost:5000`
+## 🔄 Migration from Flask
 
-### Frontend Setup
+This Next.js version replaces the Flask backend with:
+- ✅ Next.js API Routes (same endpoints)
+- ✅ Prisma ORM (replaces raw SQL)
+- ✅ TypeScript (type safety)
+- ✅ Modern React components
+- ✅ Better performance and SEO
 
-1. Update API URL in `frontend/app.js`:
-```javascript
-const API_URL = 'http://localhost:5000/api';
-```
+The database schema remains compatible - you can use the same Neon database!
 
-2. Serve frontend using any static server:
-```bash
-# Using Python
-cd frontend
-python -m http.server 8000
+## 📝 API Endpoints
 
-# Using Node.js
-npx serve frontend
-```
+All endpoints are under `/api`:
 
-Frontend will be available at `http://localhost:8000`
-
-## Deployment on Render
-
-### Step 1: Setup Neon Database
-
-1. Go to [Neon](https://neon.tech)
-2. Create a new project
-3. Copy the connection string (starts with `postgresql://`)
-
-### Step 2: Deploy to Render
-
-1. Push code to GitHub repository
-
-2. Go to [Render Dashboard](https://dashboard.render.com)
-
-3. Click "New" → "Blueprint"
-
-4. Connect your GitHub repository
-
-5. Render will detect `render.yaml` and create services
-
-6. Add environment variables:
-   - `DATABASE_URL`: Your Neon connection string
-   - `SMTP_USER`: Your email for notifications
-   - `SMTP_PASSWORD`: Your email app password
-
-### Step 3: Configure Frontend
-
-1. After backend is deployed, copy the backend URL
-
-2. Update `frontend/app.js`:
-```javascript
-const API_URL = 'https://your-backend-url.onrender.com/api';
-```
-
-3. Commit and push changes
-
-4. Render will auto-deploy both services
-
-## Email Setup (Gmail)
-
-1. Enable 2-factor authentication on your Gmail account
-
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate new app password
-   - Use this as `SMTP_PASSWORD`
-
-## Usage
-
-### Creating a Form
-
-1. Register/Login to your account
-2. Click "Create Form"
-3. Add form title, description, and logo (optional)
-4. Add fields (text, email, number, textarea, dropdown)
-5. Click "Create Form"
-6. Share the generated link or QR code
-
-### Viewing Responses
-
-1. Go to Dashboard
-2. Click on any form card
-3. View statistics and charts
-4. See individual responses
-5. Generate QR code for easy sharing
-
-### Submitting Feedback
-
-1. Open the public form link
-2. Fill in the form
-3. Submit
-4. Form owner receives email notification
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
+- `POST /api/auth/register` - Register user
 - `POST /api/auth/login` - Login user
-
-### Forms
-- `POST /api/forms` - Create new form
-- `GET /api/forms/user/:userId` - Get user's forms
-- `GET /api/forms/:formCode` - Get form by code
-- `DELETE /api/forms/:formId` - Delete form
-
-### Responses
+- `POST /api/forms` - Create form
+- `GET /api/forms?userId=X` - Get user's forms
+- `GET /api/forms/[code]` - Get form by code (public)
+- `DELETE /api/forms/[id]` - Delete form
 - `POST /api/responses` - Submit response
-- `GET /api/responses/form/:formId` - Get form responses
-
-### Analytics
-- `GET /api/stats/:formId` - Get form statistics
-
-### QR Code
+- `GET /api/responses/[formId]` - Get form responses
+- `GET /api/analytics/[formId]` - Get form analytics
 - `POST /api/qrcode` - Generate QR code
 
-## Future Enhancements
+## 🎨 Customization
 
-- [ ] Form templates
-- [ ] Conditional logic
-- [ ] File uploads
-- [ ] Custom themes
-- [ ] Export responses (CSV, Excel)
-- [ ] Advanced analytics
-- [ ] Team collaboration
-- [ ] Webhook integrations
-- [ ] Custom domains
-- [ ] Response validation rules
-- [ ] Multi-language support
-- [ ] Form closing/scheduling
+- **Colors**: Edit `tailwind.config.ts` to customize the color scheme
+- **Components**: Modify components in `components/ui/`
+- **Styling**: All styles use Tailwind CSS utility classes
 
-## Security Notes
+## 📚 Tech Stack
 
-- Passwords are hashed using SHA-256 (for production, consider bcrypt)
-- CORS is enabled for development
-- Add rate limiting for production
-- Implement CSRF protection
-- Use HTTPS in production
-- Store sensitive data in environment variables
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: PostgreSQL (via Prisma)
+- **Charts**: Recharts
+- **Authentication**: JWT + bcrypt
+- **QR Codes**: qrcode library
 
-## License
+## 🤝 Contributing
 
-MIT License - feel free to use for your projects!
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## Contributing
+## 📄 License
 
-Pull requests are welcome! For major changes, please open an issue first.
-
-## Support
-
-For issues or questions, please open a GitHub issue.
+MIT License
 
 ---
 
-Built with ❤️ using vanilla web technologies
+Built with ❤️ using Next.js
+
