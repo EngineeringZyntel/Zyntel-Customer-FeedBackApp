@@ -5,11 +5,8 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [],
-    unoptimized: true, // For Render deployment
+    unoptimized: true,
   },
-  // Enable static exports if needed
-  output: 'standalone',
-  // Webpack alias configuration
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
